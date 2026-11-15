@@ -45,6 +45,18 @@ class FaceLayout {
   double get secondaryFontSize => digitHeight * Units.secondaryFont;
   double get secondaryGap => digitHeight * Units.secondaryGap;
   double get secondaryHeight => hasSecondary ? digitHeight * (Units.secondaryGap + Units.secondaryLine) : 0;
+
+  // Value equality lets the face skip repainting when nothing it shows changed.
+  @override
+  bool operator ==(Object other) =>
+      other is FaceLayout &&
+      other.digitHeight == digitHeight &&
+      other.timeSize == timeSize &&
+      other.sideColumnWidth == sideColumnWidth &&
+      other.hasSecondary == hasSecondary;
+
+  @override
+  int get hashCode => Object.hash(digitHeight, timeSize, sideColumnWidth, hasSecondary);
 }
 
 /// The digit height that makes the time, always on one line, as large as

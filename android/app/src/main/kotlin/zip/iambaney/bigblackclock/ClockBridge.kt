@@ -39,6 +39,7 @@ class ClockBridge(private val activity: Activity, messenger: BinaryMessenger) {
     private val sensors = activity.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private val alarms = activity.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     private val lightSensor: Sensor? = sensors.getDefaultSensor(Sensor.TYPE_LIGHT)
+    private val prefs = activity.getSharedPreferences("settings", Context.MODE_PRIVATE)
     private val worker = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
 
@@ -75,6 +76,12 @@ class ClockBridge(private val activity: Activity, messenger: BinaryMessenger) {
                         false
                     }
                     result.success(opened)
+                }
+                // The Dart side encodes the settings as one JSON string.
+                "loadSettings" -> result.success(prefs.getString("settings", null))
+                "saveSettings" -> {
+                    prefs.edit().putString("settings", call.arguments as String).apply()
+                    result.success(null)
                 }
                 else -> result.notImplemented()
             }

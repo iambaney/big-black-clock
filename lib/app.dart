@@ -1,8 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import 'brightness/brightness.dart';
 import 'clock/clock_face.dart';
 import 'clock/time_format.dart';
 import 'clock_controller.dart';
@@ -78,14 +76,18 @@ class _ClockAppState extends State<ClockApp> {
                     alignment: portrait ? const Alignment(0, -2 / 3) : Alignment.center,
                     child: Transform.translate(
                       offset: burnInOffset(c.now),
-                      child: ClockFace(
-                        now: c.now,
-                        use24h: use24h,
-                        color: s.clockColor.toColor(),
-                        showSeconds: s.showSeconds,
-                        showDate: s.showDate,
-                        alarm: alarm,
-                        battery: s.showBattery ? c.battery : null,
+                      // Its own layer, so dimming and the panel sliding do not
+                      // repaint the digits.
+                      child: RepaintBoundary(
+                        child: ClockFace(
+                          now: c.now,
+                          use24h: use24h,
+                          color: s.clockColor.toColor(),
+                          showSeconds: s.showSeconds,
+                          showDate: s.showDate,
+                          alarm: alarm,
+                          battery: s.showBattery ? c.battery : null,
+                        ),
                       ),
                     ),
                   ),
@@ -106,7 +108,6 @@ class _ClockAppState extends State<ClockApp> {
                 ),
               ),
             ),
-            if (kDebugMode && _panelOpen) Positioned(top: 8, left: 8, child: _DebugReadout(c)),
             IgnorePointer(child: ColoredBox(color: Color.fromRGBO(0, 0, 0, c.split.scrim))),
           ]);
         },
@@ -115,22 +116,3 @@ class _ClockAppState extends State<ClockApp> {
   }
 }
 
-/// Brightness internals, shown in debug builds while the panel is open.
-class _DebugReadout extends StatelessWidget {
-  const _DebugReadout(this.c);
-
-  final ClockController c;
-
-  @override
-  Widget build(BuildContext context) {
-    String f(double? v, [int digits = 3]) => v == null ? '-' : v.toStringAsFixed(digits);
-    final raw = c.rawAmbient;
-    final split = c.split;
-    return Text(
-      'lux ${raw == null ? '-' : approximateLux(raw).toStringAsFixed(1)}  '
-      'ambient ${f(raw)}/${f(c.ambient)}  level ${f(c.level)}  '
-      'backlight ${f(split.backlight)}  scrim ${f(split.scrim, 2)}',
-      style: const TextStyle(color: Color(0xFF888888), fontSize: 11),
-    );
-  }
-}

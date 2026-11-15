@@ -2,8 +2,6 @@ import 'package:bigblackclock/settings/controls.dart';
 import 'package:bigblackclock/settings/settings.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
-import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 void main() {
   test('defaults are red on black with auto brightness', () {
@@ -16,20 +14,24 @@ void main() {
     );
   });
 
-  test('HSV survives a round trip, including hue on black', () {
-    const c = HSVColor.fromAHSV(1, 210, 0.5, 0);
-    final back = decodeHsv(encodeHsv(c))!;
-    expect([back.hue, back.saturation, back.value], [210, 0.5, 0]);
-    expect(decodeHsv('nonsense'), isNull);
+  test('settings survive encoding, including hue on a color turned to black', () {
+    final s = Settings.decode(const Settings(
+      backgroundColor: HSVColor.fromAHSV(1, 210, 0.5, 0),
+      showSeconds: true,
+      use24h: true,
+      manualLevel: 0.05,
+      showBattery: false,
+    ).encode());
+    expect([s.backgroundColor.hue, s.backgroundColor.saturation, s.backgroundColor.value], [210, 0.5, 0]);
+    expect([s.showSeconds, s.use24h, s.manualLevel, s.showBattery], [true, true, 0.05, false]);
   });
 
-  test('store round trip', () async {
-    SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
-    final store = await SettingsStore.open();
-    expect(store.load().use24h, isNull);
-    await store.save(const Settings(showSeconds: true, use24h: true, manualLevel: 0.05, showBattery: false));
-    final again = (await SettingsStore.open()).load();
-    expect([again.showSeconds, again.use24h, again.manualLevel, again.showBattery], [true, true, 0.05, false]);
+  test('missing or unreadable settings fall back to the defaults', () {
+    for (final encoded in [null, '', 'nonsense', '[1, 2]', '{"clockColor": "red", "showDate": 3, "manualLevel": "x"}']) {
+      final s = Settings.decode(encoded);
+      expect([s.clockColor, s.showDate, s.manualLevel, s.use24h], [const Settings().clockColor, true, 0.5, null],
+          reason: '$encoded');
+    }
   });
 
   group('panel colors', () {

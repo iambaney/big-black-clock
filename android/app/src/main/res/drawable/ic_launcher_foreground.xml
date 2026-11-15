@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The face showing 12:34, generated from the app's seven-segment geometry
-     (lib/clock/seven_segment.dart) by LOCAL/tools/make_icon.py. -->
+     (lib/clock/seven_segment.dart) by tool/graphics.py. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"

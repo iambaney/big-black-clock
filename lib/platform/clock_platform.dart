@@ -39,6 +39,12 @@ abstract interface class ClockPlatform {
 
   /// Opens [url] in the browser; false if nothing could open it.
   Future<bool> openUrl(String url);
+
+  /// The settings as [saveSettings] last stored them; null if never saved.
+  Future<String?> loadSettings();
+
+  /// Stores the encoded settings in this app's private storage.
+  Future<void> saveSettings(String encoded);
 }
 
 /// [ClockPlatform] over the channels implemented in
@@ -102,6 +108,24 @@ class ChannelClockPlatform implements ClockPlatform {
       return await _methods.invokeMethod<bool>('openUrl', url) ?? false;
     } on MissingPluginException {
       return false;
+    }
+  }
+
+  @override
+  Future<String?> loadSettings() async {
+    try {
+      return await _methods.invokeMethod<String>('loadSettings');
+    } on MissingPluginException {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> saveSettings(String encoded) async {
+    try {
+      await _methods.invokeMethod<void>('saveSettings', encoded);
+    } on MissingPluginException {
+      // No native side on this platform; settings last until the app closes.
     }
   }
 }

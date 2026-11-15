@@ -13,13 +13,11 @@ class ClockController extends ChangeNotifier {
   ClockController({
     required this._platform,
     required this._settings,
-    this._store,
     DateTime Function() clock = DateTime.now,
   })  : _clock = clock,
         _now = clock();
 
   final ClockPlatform _platform;
-  final SettingsStore? _store;
   final DateTime Function() _clock;
 
   Settings _settings;
@@ -45,12 +43,6 @@ class ClockController extends ChangeNotifier {
   String? get appVersion => _appVersion;
 
   final _ambient = AmbientFilter();
-
-  /// Smoothed ambient light, null until the first reading.
-  double? get ambient => _ambient.value;
-
-  /// Latest unsmoothed reading, for the debug readout.
-  double? rawAmbient;
 
   double _level = 0.5;
 
@@ -135,10 +127,12 @@ class ClockController extends ChangeNotifier {
 
   void openUrl(String url) => _platform.openUrl(url);
 
+  /// Writes the settings now if a change is waiting to be saved.
   void _flushSave() {
-    _save?.cancel();
+    if (_save == null) return;
+    _save!.cancel();
     _save = null;
-    _store?.save(_settings);
+    _platform.saveSettings(_settings.encode());
   }
 
   void _tickNow() {
@@ -152,7 +146,6 @@ class ClockController extends ChangeNotifier {
   }
 
   void _onAmbient(double reading) {
-    rawAmbient = reading;
     if (_snapOnNextReading) {
       // First reading since the app became visible: the room may have changed
       // while it was away, so jump straight to the right level.
@@ -164,7 +157,6 @@ class ClockController extends ChangeNotifier {
     }
     final before = _ambient.value;
     if (_ambient.add(reading) != before) _rampToTarget();
-    if (kDebugMode) notifyListeners();
   }
 
   /// Null when auto brightness has no reading yet; the system's brightness

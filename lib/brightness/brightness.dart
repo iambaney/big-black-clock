@@ -1,7 +1,6 @@
-import 'dart:math' as math;
-
 /// Brightness is one level from 0 (darkest) to 1 (full), delivered first by
 /// the window backlight and, below [knee], by a black scrim over the face.
+library;
 
 /// Lowest window brightness used. Exactly 0 can switch some backlights off.
 const backlightFloor = 0.004;
@@ -39,9 +38,6 @@ double autoLevel(double ambient) {
   final t = ((ambient - darkAmbient) / (brightAmbient - darkAmbient)).clamp(0.0, 1.0);
   return darkRoomLevel + (1 - darkRoomLevel) * t;
 }
-
-/// Inverse of the platform's normalization, for the debug readout only.
-double approximateLux(double ambient) => math.pow(10001, ambient) - 1;
 
 /// Steadies the ambient signal: a low-pass filter, then hysteresis so small
 /// wobbles (including the screen's own glow reflecting into the sensor) do

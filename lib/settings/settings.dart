@@ -1,5 +1,6 @@
+import 'dart:convert';
+
 import 'package:flutter/painting.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 /// The eight settings, plus the manual level behind setting 3.
 class Settings {
@@ -54,55 +55,50 @@ class Settings {
         showAlarm: showAlarm ?? this.showAlarm,
         showBattery: showBattery ?? this.showBattery,
       );
-}
 
-/// Persists [Settings] as individual preference keys.
-class SettingsStore {
-  SettingsStore._(this._prefs);
+  /// One JSON string, which the platform stores as it is.
+  String encode() => jsonEncode({
+        'clockColor': _encodeHsv(clockColor),
+        'backgroundColor': _encodeHsv(backgroundColor),
+        'autoBrightness': autoBrightness,
+        'manualLevel': manualLevel,
+        'use24h': use24h,
+        'showSeconds': showSeconds,
+        'showDate': showDate,
+        'showAlarm': showAlarm,
+        'showBattery': showBattery,
+      });
 
-  final SharedPreferencesWithCache _prefs;
-
-  static Future<SettingsStore> open() async => SettingsStore._(
-        await SharedPreferencesWithCache.create(cacheOptions: const SharedPreferencesWithCacheOptions()),
-      );
-
-  Settings load() {
+  /// Reads what [encode] wrote. Anything missing or unreadable, including the
+  /// whole string, falls back to its default.
+  static Settings decode(String? encoded) {
+    Object? json;
+    try {
+      json = encoded == null ? null : jsonDecode(encoded);
+    } on FormatException {
+      json = null;
+    }
+    final m = json is Map ? json : const {};
+    T read<T>(String key, T fallback) => m[key] is T ? m[key] as T : fallback;
     const d = Settings();
     return Settings(
-      clockColor: _color('clockColor') ?? d.clockColor,
-      backgroundColor: _color('backgroundColor') ?? d.backgroundColor,
-      autoBrightness: _prefs.getBool('autoBrightness') ?? d.autoBrightness,
-      manualLevel: _prefs.getDouble('manualLevel') ?? d.manualLevel,
-      use24h: _prefs.getBool('use24h'),
-      showSeconds: _prefs.getBool('showSeconds') ?? d.showSeconds,
-      showDate: _prefs.getBool('showDate') ?? d.showDate,
-      showAlarm: _prefs.getBool('showAlarm') ?? d.showAlarm,
-      showBattery: _prefs.getBool('showBattery') ?? d.showBattery,
+      clockColor: _decodeHsv(m['clockColor']) ?? d.clockColor,
+      backgroundColor: _decodeHsv(m['backgroundColor']) ?? d.backgroundColor,
+      autoBrightness: read('autoBrightness', d.autoBrightness),
+      manualLevel: read<num>('manualLevel', d.manualLevel).toDouble().clamp(0, 1),
+      use24h: read<bool?>('use24h', null),
+      showSeconds: read('showSeconds', d.showSeconds),
+      showDate: read('showDate', d.showDate),
+      showAlarm: read('showAlarm', d.showAlarm),
+      showBattery: read('showBattery', d.showBattery),
     );
-  }
-
-  Future<void> save(Settings s) => Future.wait([
-        _prefs.setString('clockColor', encodeHsv(s.clockColor)),
-        _prefs.setString('backgroundColor', encodeHsv(s.backgroundColor)),
-        _prefs.setBool('autoBrightness', s.autoBrightness),
-        _prefs.setDouble('manualLevel', s.manualLevel),
-        if (s.use24h != null) _prefs.setBool('use24h', s.use24h!),
-        _prefs.setBool('showSeconds', s.showSeconds),
-        _prefs.setBool('showDate', s.showDate),
-        _prefs.setBool('showAlarm', s.showAlarm),
-        _prefs.setBool('showBattery', s.showBattery),
-      ]);
-
-  HSVColor? _color(String key) {
-    final value = _prefs.getString(key);
-    return value == null ? null : decodeHsv(value);
   }
 }
 
-String encodeHsv(HSVColor c) => '${c.hue},${c.saturation},${c.value}';
+List<double> _encodeHsv(HSVColor c) => [c.hue, c.saturation, c.value];
 
-HSVColor? decodeHsv(String s) {
-  final parts = s.split(',').map(double.tryParse).toList();
-  if (parts.length != 3 || parts.contains(null)) return null;
-  return HSVColor.fromAHSV(1, parts[0]!.clamp(0, 360), parts[1]!.clamp(0, 1), parts[2]!.clamp(0, 1));
+HSVColor? _decodeHsv(Object? json) {
+  if (json is! List || json.length != 3 || json.any((v) => v is! num)) return null;
+  final [h, s, v] = [for (final n in json) (n as num).toDouble()];
+  return HSVColor.fromAHSV(1, h.clamp(0, 360), s.clamp(0, 1), v.clamp(0, 1));
 }

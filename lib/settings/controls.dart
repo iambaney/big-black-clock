@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 /// Panel colors: the user's background, faintly tinted by the clock color,
@@ -125,15 +126,7 @@ class _TrackPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_TrackPainter old) =>
-      old.value != value || old.thumb != thumb || old.ring != ring || !_sameColors(old.track, track);
-
-  static bool _sameColors(List<Color> a, List<Color> b) {
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
-  }
+      old.value != value || old.thumb != thumb || old.ring != ring || !listEquals(old.track, track);
 }
 
 /// Hue, saturation and value sliders for one color.

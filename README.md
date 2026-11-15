@@ -1,8 +1,19 @@
-# big-black-clock
+# Big Black Clock
 
-A huge, quiet, ad-free desk and nightstand clock for Android. Seven-segment digits in your own colors, brightness that follows the room, the next alarm and the battery on the face, and an eight-item settings panel. No ads, no accounts, and no internet access.
+A huge, quiet desk and nightstand clock for Android. Seven-segment digits in your own colors, brightness that follows the room, and the date, next alarm and battery under the time. One small settings panel; no ads, no accounts and no internet access.
 
-Built with Flutter. The Android-only features (light sensor, window brightness, next alarm, battery) are a small amount of Kotlin in `android/app/src/main/kotlin/` behind a platform channel, with no third-party plugins.
+Built with Flutter and no packages beyond the SDK. Everything Android-specific (light sensor, window brightness, next alarm, battery, settings storage, opening the privacy policy) is one Kotlin file behind a platform channel. iOS is planned; until it has a native side, those features report themselves unavailable.
+
+## Layout
+
+- `lib/clock/`: the face (seven-segment painter, layout, time and alarm labels).
+- `lib/brightness/`: the auto-brightness curve and the backlight/scrim split.
+- `lib/settings/`: the settings, their encoding, and the settings panel.
+- `lib/platform/`: the Dart side of the platform channel.
+- `lib/clock_controller.dart`: the app's state; `lib/app.dart`: the one screen.
+- `android/app/src/main/kotlin/zip/iambaney/bigblackclock/ClockBridge.kt`: the Android side.
+- `test/`: unit tests. `tool/`: the icon, store graphic and screenshot generators.
+- `fastlane/metadata/android/en-US/`: the Google Play listing. `PRIVACY.md`: the privacy policy.
 
 ## Develop on a phone
 
@@ -35,7 +46,7 @@ Updates keep the grants; uninstalling removes them. Neither permission gives net
 ## Release on Google Play
 
 1. Raise the version in `pubspec.yaml`. It reads `name+build`, for example `1.0.0+1`. Google Play needs a higher build number for every upload, so raise both together: `1.0.1+2`, then `1.1.0+3`, and so on. Put the release notes in `fastlane/metadata/android/en-US/changelogs/<build>.txt`.
-2. Run `flutter build appbundle` and upload `build/app/outputs/bundle/release/app-release.aab`.
+2. Run `flutter build appbundle --split-debug-info=build/symbols` and upload `build/app/outputs/bundle/release/app-release.aab`. Splitting out the debug symbols makes the app about 0.3 MB smaller; Dart stack traces then need `flutter symbolize` with that build's symbols.
 
 Release builds are signed with the upload key named in `android/key.properties`, which git ignores:
 
@@ -48,7 +59,16 @@ storeFile=/absolute/path/to/upload-keystore.jks
 
 Keep the keystore and its password backed up somewhere other than this machine. Without `key.properties`, release builds fall back to the debug key, which Play rejects.
 
-The store listing (text, icon, feature graphic and screenshots) is in `fastlane/metadata/android/en-US/`, and the privacy policy is [PRIVACY.md](PRIVACY.md).
+## Icons, store graphics and screenshots
+
+Every image is drawn from the face's own seven-segment geometry: the launcher icon, the iOS app icons, and the Play icon, feature graphics and screenshots. To regenerate them (needs Python 3 with Pillow):
+
+```sh
+flutter test tool/screenshots_test.dart   # only to redo the screenshots
+python3 tool/graphics.py
+```
+
+The screenshots are rendered from the app's real widgets with a fixed time, alarm and battery. They use 24-hour time, because the test environment cannot draw the face's AM/PM in Roboto.
 
 ## Test
 

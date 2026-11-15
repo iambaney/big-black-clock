@@ -7,11 +7,7 @@ import 'settings/settings.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final store = await SettingsStore.open();
-  final controller = ClockController(
-    platform: ChannelClockPlatform(),
-    settings: store.load(),
-    store: store,
-  );
-  runApp(ClockApp(controller: controller));
+  final platform = ChannelClockPlatform();
+  final settings = Settings.decode(await platform.loadSettings());
+  runApp(ClockApp(controller: ClockController(platform: platform, settings: settings)));
 }
