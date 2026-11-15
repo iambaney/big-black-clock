@@ -1,0 +1,6 @@
+First release.
+• A huge seven-segment clock in the colors you choose
+• Brightness that follows the room
+• Your next alarm, the date and the battery under the time
+• 24-hour or 12-hour time, optional seconds
+No ads, no accounts, no internet access.

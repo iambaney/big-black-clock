@@ -39,7 +39,7 @@ class FaceLayout {
   /// pixels; zero when neither is shown.
   final double sideColumnWidth;
 
-  /// Whether the date and alarm line sits under the time.
+  /// Whether the date, alarm and battery line sits under the time.
   final bool hasSecondary;
 
   double get secondaryFontSize => digitHeight * Units.secondaryFont;
@@ -48,7 +48,8 @@ class FaceLayout {
 }
 
 /// The digit height that makes the time, always on one line, as large as
-/// possible inside [area] with the date and alarm line (if any) below it.
+/// possible inside [area] with the date, alarm and battery line (if any)
+/// below it.
 /// Sizes come from the widest possible time, so the result does not change
 /// from minute to minute.
 FaceLayout fitFace(
@@ -57,13 +58,14 @@ FaceLayout fitFace(
   required bool period,
   required bool date,
   required bool alarm,
+  required bool battery,
 }) {
   final side = seconds
       ? Units.sideGap + Units.smallPairWidth
       : period
           ? Units.sideGap + Units.periodWidth
           : 0.0;
-  final hasSecondary = date || alarm;
+  final hasSecondary = date || alarm || battery;
   final width = 2 * Units.pairWidth + Units.colonWidth + side;
   final height = 1 + (hasSecondary ? Units.secondaryGap + Units.secondaryLine : 0);
   final h = math.min(area.width / width, area.height / height);

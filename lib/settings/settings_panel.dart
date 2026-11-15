@@ -1,9 +1,15 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../clock_controller.dart';
 import 'controls.dart';
 
-/// The seven-item panel. Every change is applied as it happens.
+/// Published from PRIVACY.md at the repo root.
+const privacyPolicyUrl = 'https://github.com/iambaney/big-black-clock/blob/main/PRIVACY.md';
+
+/// The eight-item panel, plus a button that closes the app and a line with the
+/// privacy policy and version. Every change is applied as it happens.
 class SettingsPanel extends StatefulWidget {
   const SettingsPanel({super.key, required this.controller, required this.use24h});
 
@@ -101,18 +107,56 @@ class _SettingsPanelState extends State<SettingsPanel> {
       toggle('Show seconds', s.showSeconds, (v) => set(s.copyWith(showSeconds: v))),
       toggle('Show date', s.showDate, (v) => set(s.copyWith(showDate: v))),
       if (c.capabilities.nextAlarm) toggle('Show next alarm', s.showAlarm, (v) => set(s.copyWith(showAlarm: v))),
+      if (c.capabilities.battery) toggle('Show battery', s.showBattery, (v) => set(s.copyWith(showBattery: v))),
     ];
+    // Immersive mode hides the navigation bar, so leaving takes extra swipes
+    // without this. iOS does not let apps close themselves.
+    final close = defaultTargetPlatform == TargetPlatform.android
+        ? GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => SystemNavigator.pop(),
+            child: Container(
+              height: 36,
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                border: Border.all(color: fg, width: 1.5),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text('Close app'),
+            ),
+          )
+        : null;
+    // Google Play requires the privacy policy to be reachable from the app.
+    final small = TextStyle(color: fg.withValues(alpha: 0.7), fontSize: 13);
+    final about = SizedBox(
+      height: 40,
+      child: Row(children: [
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => c.openUrl(privacyPolicyUrl),
+          child: Center(
+            child: Text(
+              'Privacy policy',
+              style: small.copyWith(decoration: TextDecoration.underline, decorationColor: small.color),
+            ),
+          ),
+        ),
+        const Spacer(),
+        if (c.appVersion != null) Text('Version ${c.appVersion}', style: small),
+      ]),
+    );
     // On a wide, short screen, two columns keep the panel low enough that
     // the clock stays visible above it.
     final screen = MediaQuery.sizeOf(context);
     final wide = screen.width >= 640 && screen.width > screen.height;
     final body = wide
         ? Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(child: Column(mainAxisSize: MainAxisSize.min, children: colorRows)),
+            Expanded(child: Column(mainAxisSize: MainAxisSize.min, children: [...colorRows, ?close, about])),
             const SizedBox(width: 32),
             Expanded(child: Column(mainAxisSize: MainAxisSize.min, children: toggleRows)),
           ])
-        : Column(mainAxisSize: MainAxisSize.min, children: [...colorRows, ...toggleRows]);
+        : Column(mainAxisSize: MainAxisSize.min, children: [...colorRows, ...toggleRows, ?close, about]);
 
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: wide ? 820 : 560, maxHeight: screen.height * 0.85),

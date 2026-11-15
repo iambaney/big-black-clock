@@ -11,7 +11,7 @@
         tools:node="remove" />
     <!-- Optional, and only grantable by hand over adb:
            adb shell pm grant zip.iambaney.bigblackclock android.permission.DUMP
-           adb shell appops set zip.iambaney.bigblackclock GET_USAGE_STATS allow
+           adb shell pm grant zip.iambaney.bigblackclock android.permission.PACKAGE_USAGE_STATS
          Together they let the app read the full alarm list (the alarm
          service's dump requires both), so fake "alarm clocks" from other apps
          cannot hide the real next alarm. See ClockBridge.kt. -->

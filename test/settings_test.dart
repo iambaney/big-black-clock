@@ -10,7 +10,10 @@ void main() {
     const s = Settings();
     expect(s.clockColor.toColor(), const Color(0xFFFF0000));
     expect(s.backgroundColor.toColor(), const Color(0xFF000000));
-    expect([s.autoBrightness, s.showSeconds, s.showDate, s.showAlarm, s.use24h], [true, false, true, true, null]);
+    expect(
+      [s.autoBrightness, s.showSeconds, s.showDate, s.showAlarm, s.showBattery, s.use24h],
+      [true, false, true, true, true, null],
+    );
   });
 
   test('HSV survives a round trip, including hue on black', () {
@@ -24,9 +27,9 @@ void main() {
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
     final store = await SettingsStore.open();
     expect(store.load().use24h, isNull);
-    await store.save(const Settings(showSeconds: true, use24h: true, manualLevel: 0.05));
+    await store.save(const Settings(showSeconds: true, use24h: true, manualLevel: 0.05, showBattery: false));
     final again = (await SettingsStore.open()).load();
-    expect([again.showSeconds, again.use24h, again.manualLevel], [true, true, 0.05]);
+    expect([again.showSeconds, again.use24h, again.manualLevel, again.showBattery], [true, true, 0.05, false]);
   });
 
   group('panel colors', () {
