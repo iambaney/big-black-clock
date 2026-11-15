@@ -1,17 +1,4 @@
-Big Black Clock turns your phone into a plain bedside or desk clock: huge seven-segment digits, the date, your next alarm and the battery, and nothing else.
+It's HUGE!
+Big Black Clock turns your phone into a basic bedside or desk clock: huge seven-segment digits, the date, your next alarm, the battery, one small settings panel... and nothing else.
 
-There are no ads, no subscriptions and no accounts. The app doesn't have permission to use the internet, so there is nothing to track and nothing to sell.
-
-• Huge digits. The time always fits on one line and fills the screen, in portrait or landscape.
-• Your colors. Choose any color for the digits and for the background. Red on black is the default.
-• Brightness that follows the room. The light sensor dims the screen in the dark and brings it back up when the lights come on. You can also set it by hand.
-• Your next alarm, under the time. An alarm more than a day off is marked, such as "07:00 +2 days".
-• The battery at a glance. A small battery fills with the charge and shows a lightning bolt while a charger is connected, so you can see the phone is actually charging.
-• 24-hour or 12-hour time, with optional seconds.
-• Stays on while it's open, and shifts the digits a few pixels over each hour to protect the screen.
-• One small settings panel: tap the clock to open it, tap again to close it. A Close app button gets you out of full screen in one tap.
-
-About the next alarm
-Some apps register background timers as alarms (on Samsung phones, Find My Mobile does this all day), which can hide your real alarm. On Android 12 and newer, Big Black Clock only shows alarms that open an alarm screen, so it shows nothing rather than the wrong time. If you're comfortable with USB debugging, two one-time adb commands let it read the full alarm list and always find your real alarm. The instructions are in the project's README: https://github.com/iambaney/big-black-clock
-
-Big Black Clock is open source under the MIT license, and it collects no data.
+No ads, no subscriptions, no accounts, no internet access, and no data collected. Free and open source at https://github.com/iambaney/big-black-clock

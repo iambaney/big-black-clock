@@ -2,11 +2,11 @@
 
 Effective 15 November 2026.
 
-Big Black Clock does not collect, share or sell any personal data.
+Big Black Clock is made by Anthony Baney. It does not collect, share or sell any personal data.
 
 - **No internet access.** The app does not request Android's internet permission, so it cannot send anything off your phone.
 - **No accounts, ads, analytics or crash reporting.**
-- **Settings stay on your phone.** Your colors, brightness and display choices are saved in the app's own storage. If you use Android's device backup, your backup may include them; Google stores that backup under your account, and the developer has no access to it.
+- **Settings stay on your phone.** Your colors, brightness and display choices are saved in the app's own storage. Uninstalling the app deletes them. If you use Android's device backup, your backup may include them; Google stores that backup under your account, and the developer has no access to it.
 
 ## What the app reads, and why
 
@@ -22,4 +22,4 @@ If this policy changes, the new version will be posted here with a new effective
 
 ## Contact
 
-Questions about this policy: open an issue at <https://github.com/iambaney/big-black-clock/issues>.
+Questions about this policy or your privacy: email [bigblackclock@iambaney.zip](mailto:bigblackclock@iambaney.zip), or open an issue at <https://github.com/iambaney/big-black-clock/issues>.
