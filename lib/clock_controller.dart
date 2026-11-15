@@ -48,12 +48,15 @@ class ClockController extends ChangeNotifier {
   double get level => _level;
   Split get split => splitLevel(_level);
 
-  /// Whether brightness is following the light sensor right now.
-  bool get autoActive => _settings.autoBrightness && _capabilities.ambientLight && _ambient.value != null;
+  /// Whether brightness follows the light sensor (auto is on and the device
+  /// has one).
+  bool get autoAvailable => _capabilities.ambientLight;
+  bool get autoOn => _settings.autoBrightness && autoAvailable;
 
-  /// What the brightness slider shows: the level auto mode is aiming for, or
-  /// the manual level.
-  double get sliderLevel => _targetLevel() ?? _settings.manualLevel;
+  /// While a brightness slider is held, the screen shows that slider's level
+  /// so it can be judged directly, even when tuning the dark-room level in a
+  /// lit room.
+  double? _preview;
 
   bool _running = false;
   bool _snapOnNextReading = false;
@@ -104,16 +107,22 @@ class ClockController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// The brightness slider moved. Applied at once, without the ramp.
-  void setSliderLevel(double level) {
-    final s = _settings;
-    if (autoActive) {
-      final a = retuneAnchors(_ambient.value!, level, dark: s.darkLevel, bright: s.brightLevel);
-      update(s.copyWith(darkLevel: a.dark, brightLevel: a.bright));
-    } else {
-      update(s.copyWith(manualLevel: level));
-    }
+  /// A brightness slider moved: the manual level, or one end of the auto
+  /// range. Shown at once, without the ramp, until [endBrightnessPreview].
+  void setManualLevel(double level) => _showWhileHeld(level, _settings.copyWith(manualLevel: level));
+  void setDarkLevel(double level) => _showWhileHeld(level, _settings.copyWith(darkLevel: level));
+  void setBrightLevel(double level) => _showWhileHeld(level, _settings.copyWith(brightLevel: level));
+
+  void _showWhileHeld(double level, Settings s) {
+    _preview = level;
+    update(s);
     _snapToTarget();
+  }
+
+  /// The slider was released: ease back to what the room calls for.
+  void endBrightnessPreview() {
+    _preview = null;
+    _rampToTarget();
   }
 
   void _flushSave() {
@@ -152,7 +161,8 @@ class ClockController extends ChangeNotifier {
   /// stays in charge until one arrives.
   double? _targetLevel() {
     final s = _settings;
-    if (s.autoBrightness && _capabilities.ambientLight) {
+    if (_preview != null) return _preview;
+    if (autoOn) {
       final a = _ambient.value;
       return a == null ? null : autoLevel(a, dark: s.darkLevel, bright: s.brightLevel);
     }

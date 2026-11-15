@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -21,12 +19,11 @@ class ClockApp extends StatefulWidget {
 }
 
 class _ClockAppState extends State<ClockApp> {
-  static const _panelTimeout = Duration(seconds: 4);
-
   late final AppLifecycleListener _lifecycle;
+
+  /// Opened by tapping the face, closed by tapping the face again (anywhere
+  /// outside the panel).
   bool _panelOpen = false;
-  Timer? _hideTimer;
-  int _pointersDown = 0;
 
   ClockController get _controller => widget.controller;
 
@@ -45,31 +42,10 @@ class _ClockAppState extends State<ClockApp> {
   @override
   void dispose() {
     _lifecycle.dispose();
-    _hideTimer?.cancel();
     super.dispose();
   }
 
-  void _togglePanel() {
-    setState(() => _panelOpen = !_panelOpen);
-    _panelOpen ? _scheduleHide() : _hideTimer?.cancel();
-  }
-
-  void _scheduleHide() {
-    _hideTimer?.cancel();
-    _hideTimer = Timer(_panelTimeout, () => setState(() => _panelOpen = false));
-  }
-
-  // The panel stays open while a finger is down on it, and for the timeout
-  // after the last touch.
-  void _pointerDown(PointerDownEvent _) {
-    _pointersDown++;
-    _hideTimer?.cancel();
-  }
-
-  void _pointerUp(PointerEvent _) {
-    if (_pointersDown > 0) _pointersDown--;
-    if (_pointersDown == 0 && _panelOpen) _scheduleHide();
-  }
+  void _togglePanel() => setState(() => _panelOpen = !_panelOpen);
 
   @override
   Widget build(BuildContext context) {
@@ -119,22 +95,7 @@ class _ClockAppState extends State<ClockApp> {
                   offset: _panelOpen ? Offset.zero : const Offset(0, 1.1),
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeOut,
-                  child: Listener(
-                    onPointerDown: _pointerDown,
-                    onPointerUp: _pointerUp,
-                    onPointerCancel: _pointerUp,
-                    child: Center(
-                      child: SettingsPanel(
-                        settings: s,
-                        onChanged: c.update,
-                        use24h: use24h,
-                        brightness: c.sliderLevel,
-                        onBrightness: c.setSliderLevel,
-                        autoAvailable: c.capabilities.ambientLight,
-                        alarmAvailable: c.capabilities.nextAlarm,
-                      ),
-                    ),
-                  ),
+                  child: Center(child: SettingsPanel(controller: c, use24h: use24h)),
                 ),
               ),
             ),

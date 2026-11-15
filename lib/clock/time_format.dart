@@ -54,10 +54,24 @@ String timeLabel(DateTime t, {required bool use24h}) {
   return c.period == null ? '${c.hours}:${c.minutes}' : '${c.hours}:${c.minutes} ${c.period}';
 }
 
-/// The next alarm: just the time when it is less than a day away, otherwise
-/// prefixed with the weekday ("Tue 6:30 AM").
+/// How many times the clock will pass the alarm's time of day before the
+/// alarm actually rings: 0 when it rings the next time that time comes round.
+/// On Saturday evening, an alarm for 8:00 on Monday is +1 (Sunday's 8:00
+/// comes first).
+int alarmExtraDays(DateTime alarm, DateTime now) {
+  int secondOfDay(DateTime t) => t.hour * 3600 + t.minute * 60 + t.second;
+  // Whole calendar days, counted in UTC so a daylight-saving change in
+  // between does not produce a fractional day.
+  final today = DateTime.utc(now.year, now.month, now.day);
+  final alarmDay = DateTime.utc(alarm.year, alarm.month, alarm.day);
+  final firstDay = secondOfDay(alarm) > secondOfDay(now) ? today : today.add(const Duration(days: 1));
+  return alarmDay.difference(firstDay).inDays;
+}
+
+/// The next alarm: its time, plus "+N" when it is not the next occurrence of
+/// that time ("8:00 AM +1").
 String alarmLabel(DateTime alarm, DateTime now, {required bool use24h}) {
   final time = timeLabel(alarm, use24h: use24h);
-  if (alarm.difference(now) < const Duration(hours: 24)) return time;
-  return '${_weekdays[alarm.weekday - 1]} $time';
+  final extra = alarmExtraDays(alarm, now);
+  return extra > 0 ? '$time +$extra' : time;
 }

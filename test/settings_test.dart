@@ -33,18 +33,23 @@ void main() {
     const red = HSVColor.fromAHSV(1, 0, 1, 1);
     const black = HSVColor.fromAHSV(1, 0, 0, 0);
 
-    test('use the clock color when it reads against the background', () {
-      expect(panelColors(red, black).fg, red.toColor());
+    const white = HSVColor.fromAHSV(1, 0, 0, 1);
+
+    test('dim white text on a dark background', () {
+      expect(panelColors(red, black).fg, const Color(0xFFC0C0C0));
     });
 
-    test('a very dark clock color falls back to its full-brightness hue, not white', () {
-      final dimRed = red.withValue(0.15);
-      expect(panelColors(dimRed, black).fg, red.toColor());
+    test('dark text on a light background', () {
+      expect(panelColors(red, white).fg, const Color(0xFF303030));
     });
 
-    test('identical colors still give readable controls', () {
-      final p = panelColors(red, red);
-      expect(contrastRatio(p.fg, p.bg), greaterThanOrEqualTo(1.8));
+    test('text stays readable whatever the colors', () {
+      for (final clock in [red, black, white, red.withValue(0.3)]) {
+        for (final background in [red, black, white, red.withValue(0.3)]) {
+          final p = panelColors(clock, background);
+          expect(contrastRatio(p.fg, p.bg), greaterThanOrEqualTo(3), reason: '$clock on $background');
+        }
+      }
     });
   });
 }

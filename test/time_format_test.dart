@@ -27,16 +27,25 @@ void main() {
   });
 
   group('alarmLabel', () {
+    // Saturday evening.
     final now = DateTime(2026, 11, 14, 22, 0);
 
-    test('time only when less than a day away, across midnight', () {
+    test('just the time when it is the next occurrence of that time', () {
       expect(alarmLabel(DateTime(2026, 11, 15, 6, 30), now, use24h: false), '6:30 AM');
       expect(alarmLabel(DateTime(2026, 11, 15, 6, 30), now, use24h: true), '06:30');
+      expect(alarmLabel(DateTime(2026, 11, 14, 23, 0), now, use24h: true), '23:00');
     });
 
-    test('weekday when a day or more away', () {
-      expect(alarmLabel(DateTime(2026, 11, 17, 6, 30), now, use24h: false), 'Tue 6:30 AM');
-      expect(alarmLabel(DateTime(2026, 11, 15, 22, 0), now, use24h: true), 'Sun 22:00');
+    test('+N counts the occurrences of that time it skips', () {
+      // Monday 8:00 from Saturday night: Sunday 8:00 comes first.
+      expect(alarmLabel(DateTime(2026, 11, 16, 8, 0), now, use24h: false), '8:00 AM +1');
+      // Sunday 22:00 from Saturday 22:00: tonight's 22:00 has passed, so it is next.
+      expect(alarmLabel(DateTime(2026, 11, 15, 22, 0), now, use24h: true), '22:00');
+      expect(alarmLabel(DateTime(2026, 11, 21, 22, 30), now, use24h: true), '22:30 +7');
+    });
+
+    test('across a month boundary', () {
+      expect(alarmExtraDays(DateTime(2026, 12, 2, 7, 0), DateTime(2026, 11, 30, 9, 0)), 1);
     });
   });
 }

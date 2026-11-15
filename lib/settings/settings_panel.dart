@@ -1,30 +1,16 @@
 import 'package:flutter/widgets.dart';
 
+import '../clock_controller.dart';
 import 'controls.dart';
-import 'settings.dart';
 
 /// The seven-item panel. Every change is applied as it happens.
 class SettingsPanel extends StatefulWidget {
-  const SettingsPanel({
-    super.key,
-    required this.settings,
-    required this.onChanged,
-    required this.use24h,
-    required this.brightness,
-    required this.onBrightness,
-    required this.autoAvailable,
-    required this.alarmAvailable,
-  });
+  const SettingsPanel({super.key, required this.controller, required this.use24h});
 
-  final Settings settings;
-  final ValueChanged<Settings> onChanged;
+  final ClockController controller;
 
   /// The 24-hour setting in effect, which may come from the system.
   final bool use24h;
-  final double brightness;
-  final ValueChanged<double> onBrightness;
-  final bool autoAvailable;
-  final bool alarmAvailable;
 
   @override
   State<SettingsPanel> createState() => _SettingsPanelState();
@@ -36,10 +22,11 @@ class _SettingsPanelState extends State<SettingsPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final s = widget.settings;
+    final c = widget.controller;
+    final s = c.settings;
     final colors = panelColors(s.clockColor, s.backgroundColor);
     final fg = colors.fg, bg = colors.bg;
-    final set = widget.onChanged;
+    final set = c.update;
 
     Widget row(String label, Widget control, {VoidCallback? onTap}) => GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -77,41 +64,44 @@ class _SettingsPanelState extends State<SettingsPanel> {
       ]);
     }
 
-    final brightness = SizedBox(
-      height: 44,
-      child: Row(children: [
-        const Text('Brightness'),
-        Expanded(
-          child: TrackSlider(
-            value: widget.brightness,
-            onChanged: widget.onBrightness,
-            track: [fg.withValues(alpha: 0.2), fg],
-            thumb: fg,
-            ring: bg,
-          ),
-        ),
-        if (widget.autoAvailable)
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => set(s.copyWith(autoBrightness: !s.autoBrightness)),
-            child: Row(children: [
-              const Text('Auto  '),
-              Toggle(value: s.autoBrightness, fg: fg, bg: bg),
-            ]),
-          ),
-      ]),
-    );
+    Widget level(String label, double value, ValueChanged<double> onChanged) => SizedBox(
+          height: 44,
+          child: Row(children: [
+            SizedBox(width: 110, child: Text(label)),
+            Expanded(
+              child: TrackSlider(
+                value: value,
+                onChanged: onChanged,
+                onChangeEnd: c.endBrightnessPreview,
+                track: [fg.withValues(alpha: 0.2), fg],
+                thumb: fg,
+                ring: bg,
+              ),
+            ),
+          ]),
+        );
+
+    // Auto brightness moves between the two levels as the room changes;
+    // without it there is one fixed level.
+    final brightness = [
+      if (c.autoAvailable) toggle('Auto brightness', s.autoBrightness, (v) => set(s.copyWith(autoBrightness: v))),
+      if (c.autoOn) ...[
+        level('Dark room', s.darkLevel, c.setDarkLevel),
+        level('Bright room', s.brightLevel, c.setBrightLevel),
+      ] else
+        level('Brightness', s.manualLevel, c.setManualLevel),
+    ];
 
     final colorRows = [
-      color('Clock color', 0, s.clockColor, (c) => set(s.copyWith(clockColor: c))),
-      color('Background color', 1, s.backgroundColor, (c) => set(s.copyWith(backgroundColor: c))),
-      brightness,
+      color('Clock color', 0, s.clockColor, (v) => set(s.copyWith(clockColor: v))),
+      color('Background color', 1, s.backgroundColor, (v) => set(s.copyWith(backgroundColor: v))),
+      ...brightness,
     ];
     final toggleRows = [
       toggle('24-hour time', widget.use24h, (v) => set(s.copyWith(use24h: v))),
       toggle('Show seconds', s.showSeconds, (v) => set(s.copyWith(showSeconds: v))),
       toggle('Show date', s.showDate, (v) => set(s.copyWith(showDate: v))),
-      if (widget.alarmAvailable) toggle('Show next alarm', s.showAlarm, (v) => set(s.copyWith(showAlarm: v))),
+      if (c.capabilities.nextAlarm) toggle('Show next alarm', s.showAlarm, (v) => set(s.copyWith(showAlarm: v))),
     ];
     // On a wide, short screen, two columns keep the panel low enough that
     // the clock stays visible above it.

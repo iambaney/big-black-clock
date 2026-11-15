@@ -2,16 +2,17 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
-/// Panel colors derived from the user's own, so the panel is never a bright
-/// sheet at night, with a fallback when clock and background are too close to
-/// tell apart.
+/// Panel colors: the user's background, faintly tinted by the clock color,
+/// with dim white text (or dark gray on a light background). Readable, but
+/// not a bright sheet at night.
 ({Color fg, Color bg}) panelColors(HSVColor clock, HSVColor background) {
   final bg = Color.lerp(background.toColor(), clock.toColor(), 0.08)!;
-  for (final fg in [clock.toColor(), clock.withValue(1).toColor()]) {
-    if (contrastRatio(fg, bg) >= 1.8) return (fg: fg, bg: bg);
-  }
-  const white = Color(0xFFFFFFFF), black = Color(0xFF000000);
-  return (fg: contrastRatio(white, bg) >= contrastRatio(black, bg) ? white : black, bg: bg);
+  const dimWhite = Color(0xFFC0C0C0), darkGray = Color(0xFF303030);
+  Color better(Color a, Color b) => contrastRatio(a, bg) >= contrastRatio(b, bg) ? a : b;
+  final fg = better(dimWhite, darkGray);
+  // Saturated mid-tones (a bright red background) defeat both grays.
+  if (contrastRatio(fg, bg) >= 3) return (fg: fg, bg: bg);
+  return (fg: better(const Color(0xFFFFFFFF), const Color(0xFF000000)), bg: bg);
 }
 
 double contrastRatio(Color a, Color b) {
@@ -55,6 +56,7 @@ class TrackSlider extends StatelessWidget {
     super.key,
     required this.value,
     required this.onChanged,
+    this.onChangeEnd,
     required this.track,
     required this.thumb,
     required this.ring,
@@ -62,6 +64,9 @@ class TrackSlider extends StatelessWidget {
 
   final double value;
   final ValueChanged<double> onChanged;
+
+  /// Called when the finger lifts.
+  final VoidCallback? onChangeEnd;
 
   /// Colors spread evenly along the track.
   final List<Color> track;
@@ -76,8 +81,12 @@ class TrackSlider extends StatelessWidget {
       return GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: (d) => at(d.localPosition.dx),
+        onTapUp: (_) => onChangeEnd?.call(),
+        onTapCancel: () => onChangeEnd?.call(),
         onHorizontalDragStart: (d) => at(d.localPosition.dx),
         onHorizontalDragUpdate: (d) => at(d.localPosition.dx),
+        onHorizontalDragEnd: (_) => onChangeEnd?.call(),
+        onHorizontalDragCancel: () => onChangeEnd?.call(),
         child: CustomPaint(
           size: Size(width, 36),
           painter: _TrackPainter(value.clamp(0.0, 1.0), track, thumb, ring),

@@ -25,35 +25,22 @@ Split splitLevel(double level) {
   return (backlight: backlightFloor, scrim: maxScrim * (1 - level / knee));
 }
 
-/// Normalized ambient values (see ClockPlatform.ambient) at which the dark
-/// and bright anchors apply in full: about 1 lux and about 5,000 lux.
+/// Auto mode moves the level between two user-set ends of a range: the
+/// "dark room" level at or below [darkAmbient] (about 1 lux) and the "bright
+/// room" level at or above [brightAmbient] (about 100 lux, an ordinary lit
+/// room as a phone lying on a table sees it). Values are normalized ambient
+/// light (see ClockPlatform.ambient).
 const darkAmbient = 0.075;
-const brightAmbient = 0.925;
+const brightAmbient = 0.5;
 
-/// How far [ambient] is from the dark anchor toward the bright one, 0..1.
+/// How far [ambient] is from the dark end toward the bright end, 0..1.
 double brightWeight(double ambient) =>
     ((ambient - darkAmbient) / (brightAmbient - darkAmbient)).clamp(0.0, 1.0);
 
-/// Auto mode: interpolate between the anchors over log-lux.
+/// Auto mode: interpolate between the two ends over log-lux.
 double autoLevel(double ambient, {required double dark, required double bright}) {
   final t = brightWeight(ambient);
   return dark + (bright - dark) * t;
-}
-
-/// The slider in auto mode shows the current level. Moving it re-solves the
-/// anchor that dominates at this light so the current level becomes [level];
-/// the other anchor is left alone.
-({double dark, double bright}) retuneAnchors(
-  double ambient,
-  double level, {
-  required double dark,
-  required double bright,
-}) {
-  final t = brightWeight(ambient);
-  if (t < 0.5) {
-    return (dark: ((level - bright * t) / (1 - t)).clamp(0.0, 1.0), bright: bright);
-  }
-  return (dark: dark, bright: ((level - dark * (1 - t)) / t).clamp(0.0, 1.0));
 }
 
 /// Inverse of the platform's normalization, for the debug readout only.

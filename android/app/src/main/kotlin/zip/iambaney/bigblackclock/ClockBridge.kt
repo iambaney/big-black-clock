@@ -65,7 +65,7 @@ class ClockBridge(private val activity: Activity, messenger: BinaryMessenger) {
             private var receiver: BroadcastReceiver? = null
 
             override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
-                val send = { events.success(alarms.nextAlarmClock?.triggerTime) }
+                val send = { events.success(nextRealAlarm()) }
                 val filter = IntentFilter(AlarmManager.ACTION_NEXT_ALARM_CLOCK_CHANGED)
                 receiver = object : BroadcastReceiver() {
                     override fun onReceive(context: Context, intent: Intent) = send()
@@ -84,6 +84,21 @@ class ClockBridge(private val activity: Activity, messenger: BinaryMessenger) {
                 receiver = null
             }
         })
+    }
+
+    /**
+     * The next alarm clock, unless it is not really an alarm. Some apps use
+     * setAlarmClock for background timers because it survives Doze (Samsung
+     * Find My Mobile re-arms one about two hours ahead all day, and Samsung
+     * Clock registers its bedtime and wake-up reminders the same way). Those
+     * attach a broadcast as the "show" intent; real alarms attach an activity
+     * that opens the alarm screen. Android 11 and older cannot tell the two
+     * apart, so everything passes there.
+     */
+    private fun nextRealAlarm(): Long? {
+        val info = alarms.nextAlarmClock ?: return null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && info.showIntent?.isActivity != true) return null
+        return info.triggerTime
     }
 
     companion object {

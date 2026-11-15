@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:bigblackclock/brightness/brightness.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -37,18 +39,19 @@ void main() {
       expect(autoLevel(1, dark: 0.1, bright: 0.9), 0.9);
     });
 
-    test('retuning in the dark moves only the dark anchor and hits the level', () {
-      const ambient = 0.2;
-      final a = retuneAnchors(ambient, 0.3, dark: 0.1, bright: 0.9);
-      expect(a.bright, 0.9);
-      expect(autoLevel(ambient, dark: a.dark, bright: a.bright), closeTo(0.3, 1e-9));
+    test('an ordinary lit room already gets the bright-room level', () {
+      // About 100 lux, normalized the way the Android side does it.
+      final ambient = math.log(101) / math.log(10001);
+      expect(autoLevel(ambient, dark: 0.1, bright: 0.9), closeTo(0.9, 0.01));
     });
 
-    test('retuning in daylight moves only the bright anchor', () {
-      const ambient = 0.8;
-      final a = retuneAnchors(ambient, 0.7, dark: 0.1, bright: 0.9);
-      expect(a.dark, 0.1);
-      expect(autoLevel(ambient, dark: a.dark, bright: a.bright), closeTo(0.7, 1e-9));
+    test('in between, the level moves steadily from one end to the other', () {
+      var last = 0.0;
+      for (var a = 0.0; a <= 1; a += 0.05) {
+        final level = autoLevel(a, dark: 0.1, bright: 0.9);
+        expect(level, greaterThanOrEqualTo(last));
+        last = level;
+      }
     });
   });
 
