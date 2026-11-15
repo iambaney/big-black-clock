@@ -102,8 +102,31 @@ class _SettingsPanelState extends State<SettingsPanel> {
       ]),
     );
 
+    final colorRows = [
+      color('Clock color', 0, s.clockColor, (c) => set(s.copyWith(clockColor: c))),
+      color('Background color', 1, s.backgroundColor, (c) => set(s.copyWith(backgroundColor: c))),
+      brightness,
+    ];
+    final toggleRows = [
+      toggle('24-hour time', widget.use24h, (v) => set(s.copyWith(use24h: v))),
+      toggle('Show seconds', s.showSeconds, (v) => set(s.copyWith(showSeconds: v))),
+      toggle('Show date', s.showDate, (v) => set(s.copyWith(showDate: v))),
+      if (widget.alarmAvailable) toggle('Show next alarm', s.showAlarm, (v) => set(s.copyWith(showAlarm: v))),
+    ];
+    // On a wide, short screen, two columns keep the panel low enough that
+    // the clock stays visible above it.
+    final screen = MediaQuery.sizeOf(context);
+    final wide = screen.width >= 640 && screen.width > screen.height;
+    final body = wide
+        ? Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: Column(mainAxisSize: MainAxisSize.min, children: colorRows)),
+            const SizedBox(width: 32),
+            Expanded(child: Column(mainAxisSize: MainAxisSize.min, children: toggleRows)),
+          ])
+        : Column(mainAxisSize: MainAxisSize.min, children: [...colorRows, ...toggleRows]);
+
     return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: 560, maxHeight: MediaQuery.sizeOf(context).height * 0.85),
+      constraints: BoxConstraints(maxWidth: wide ? 820 : 560, maxHeight: screen.height * 0.85),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: bg,
@@ -116,15 +139,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
             child: DefaultTextStyle(
               style: TextStyle(color: fg, fontSize: 16, height: 1.2),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                color('Clock color', 0, s.clockColor, (c) => set(s.copyWith(clockColor: c))),
-                color('Background color', 1, s.backgroundColor, (c) => set(s.copyWith(backgroundColor: c))),
-                brightness,
-                toggle('24-hour time', widget.use24h, (v) => set(s.copyWith(use24h: v))),
-                toggle('Show seconds', s.showSeconds, (v) => set(s.copyWith(showSeconds: v))),
-                toggle('Show date', s.showDate, (v) => set(s.copyWith(showDate: v))),
-                if (widget.alarmAvailable) toggle('Show next alarm', s.showAlarm, (v) => set(s.copyWith(showAlarm: v))),
-              ]),
+              child: body,
             ),
           ),
         ),
