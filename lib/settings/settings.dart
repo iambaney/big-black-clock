@@ -1,15 +1,13 @@
 import 'package:flutter/painting.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// The seven settings, plus the brightness values behind setting 3.
+/// The seven settings, plus the manual level behind setting 3.
 class Settings {
   const Settings({
     this.clockColor = const HSVColor.fromAHSV(1, 0, 1, 1),
     this.backgroundColor = const HSVColor.fromAHSV(1, 0, 0, 0),
     this.autoBrightness = true,
     this.manualLevel = 0.5,
-    this.darkLevel = 0.15,
-    this.brightLevel = 1,
     this.use24h,
     this.showSeconds = false,
     this.showDate = true,
@@ -26,11 +24,6 @@ class Settings {
   /// Brightness level when auto brightness is off.
   final double manualLevel;
 
-  /// Auto-brightness anchors: the level wanted in a dark room and in a bright
-  /// one (see brightness.dart).
-  final double darkLevel;
-  final double brightLevel;
-
   /// Null until the user picks; until then the system's 24-hour setting applies.
   final bool? use24h;
   final bool showSeconds;
@@ -42,8 +35,6 @@ class Settings {
     HSVColor? backgroundColor,
     bool? autoBrightness,
     double? manualLevel,
-    double? darkLevel,
-    double? brightLevel,
     bool? use24h,
     bool? showSeconds,
     bool? showDate,
@@ -54,8 +45,6 @@ class Settings {
         backgroundColor: backgroundColor ?? this.backgroundColor,
         autoBrightness: autoBrightness ?? this.autoBrightness,
         manualLevel: manualLevel ?? this.manualLevel,
-        darkLevel: darkLevel ?? this.darkLevel,
-        brightLevel: brightLevel ?? this.brightLevel,
         use24h: use24h ?? this.use24h,
         showSeconds: showSeconds ?? this.showSeconds,
         showDate: showDate ?? this.showDate,
@@ -80,8 +69,6 @@ class SettingsStore {
       backgroundColor: _color('backgroundColor') ?? d.backgroundColor,
       autoBrightness: _prefs.getBool('autoBrightness') ?? d.autoBrightness,
       manualLevel: _prefs.getDouble('manualLevel') ?? d.manualLevel,
-      darkLevel: _prefs.getDouble('darkLevel') ?? d.darkLevel,
-      brightLevel: _prefs.getDouble('brightLevel') ?? d.brightLevel,
       use24h: _prefs.getBool('use24h'),
       showSeconds: _prefs.getBool('showSeconds') ?? d.showSeconds,
       showDate: _prefs.getBool('showDate') ?? d.showDate,
@@ -94,8 +81,6 @@ class SettingsStore {
         _prefs.setString('backgroundColor', encodeHsv(s.backgroundColor)),
         _prefs.setBool('autoBrightness', s.autoBrightness),
         _prefs.setDouble('manualLevel', s.manualLevel),
-        _prefs.setDouble('darkLevel', s.darkLevel),
-        _prefs.setDouble('brightLevel', s.brightLevel),
         if (s.use24h != null) _prefs.setBool('use24h', s.use24h!),
         _prefs.setBool('showSeconds', s.showSeconds),
         _prefs.setBool('showDate', s.showDate),

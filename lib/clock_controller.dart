@@ -53,11 +53,6 @@ class ClockController extends ChangeNotifier {
   bool get autoAvailable => _capabilities.ambientLight;
   bool get autoOn => _settings.autoBrightness && autoAvailable;
 
-  /// While a brightness slider is held, the screen shows that slider's level
-  /// so it can be judged directly, even when tuning the dark-room level in a
-  /// lit room.
-  double? _preview;
-
   bool _running = false;
   bool _snapOnNextReading = false;
   Timer? _tick;
@@ -107,23 +102,16 @@ class ClockController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// A brightness slider moved: the manual level, or one end of the auto
-  /// range. Shown at once, without the ramp, until [endBrightnessPreview].
-  void setManualLevel(double level) => _showWhileHeld(level, _settings.copyWith(manualLevel: level));
-  void setDarkLevel(double level) => _showWhileHeld(level, _settings.copyWith(darkLevel: level));
-  void setBrightLevel(double level) => _showWhileHeld(level, _settings.copyWith(brightLevel: level));
-
-  void _showWhileHeld(double level, Settings s) {
-    _preview = level;
-    update(s);
+  /// The brightness slider moved (auto off). Applied at once, without the ramp.
+  void setManualLevel(double level) {
+    update(_settings.copyWith(manualLevel: level));
     _snapToTarget();
   }
 
-  /// The slider was released: ease back to what the room calls for.
-  void endBrightnessPreview() {
-    _preview = null;
-    _rampToTarget();
-  }
+  /// Turning auto off keeps the current level as the manual one, so the
+  /// screen does not jump.
+  void setAutoBrightness(bool on) =>
+      update(_settings.copyWith(autoBrightness: on, manualLevel: on ? null : _level));
 
   void _flushSave() {
     _save?.cancel();
@@ -160,13 +148,11 @@ class ClockController extends ChangeNotifier {
   /// Null when auto brightness has no reading yet; the system's brightness
   /// stays in charge until one arrives.
   double? _targetLevel() {
-    final s = _settings;
-    if (_preview != null) return _preview;
     if (autoOn) {
       final a = _ambient.value;
-      return a == null ? null : autoLevel(a, dark: s.darkLevel, bright: s.brightLevel);
+      return a == null ? null : autoLevel(a);
     }
-    return s.manualLevel;
+    return _settings.manualLevel;
   }
 
   void _snapToTarget() {

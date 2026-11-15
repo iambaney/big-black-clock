@@ -34,21 +34,23 @@ void main() {
   });
 
   group('auto curve', () {
-    test('anchors apply in full at the ends', () {
-      expect(autoLevel(0, dark: 0.1, bright: 0.9), 0.1);
-      expect(autoLevel(1, dark: 0.1, bright: 0.9), 0.9);
+    // Normalized the way the Android side does it.
+    double lux(double l) => math.log(l + 1) / math.log(10001);
+
+    test('a dark room gets the calibrated dark-room level', () {
+      expect(autoLevel(lux(0)), darkRoomLevel);
+      expect(autoLevel(lux(0.5)), darkRoomLevel);
     });
 
-    test('an ordinary lit room already gets the bright-room level', () {
-      // About 100 lux, normalized the way the Android side does it.
-      final ambient = math.log(101) / math.log(10001);
-      expect(autoLevel(ambient, dark: 0.1, bright: 0.9), closeTo(0.9, 0.01));
+    test('an ordinary lit room gets full brightness', () {
+      expect(autoLevel(lux(100)), closeTo(1, 0.01));
+      expect(autoLevel(lux(5000)), 1);
     });
 
-    test('in between, the level moves steadily from one end to the other', () {
+    test('in between, the level rises steadily with the light', () {
       var last = 0.0;
       for (var a = 0.0; a <= 1; a += 0.05) {
-        final level = autoLevel(a, dark: 0.1, bright: 0.9);
+        final level = autoLevel(a);
         expect(level, greaterThanOrEqualTo(last));
         last = level;
       }

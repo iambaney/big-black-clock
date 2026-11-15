@@ -124,8 +124,7 @@ class _DebugReadout extends StatelessWidget {
     return Text(
       'lux ${raw == null ? '-' : approximateLux(raw).toStringAsFixed(1)}  '
       'ambient ${f(raw)}/${f(c.ambient)}  level ${f(c.level)}  '
-      'backlight ${f(split.backlight)}  scrim ${f(split.scrim, 2)}  '
-      'anchors ${f(c.settings.darkLevel, 2)}/${f(c.settings.brightLevel, 2)}',
+      'backlight ${f(split.backlight)}  scrim ${f(split.scrim, 2)}',
       style: const TextStyle(color: Color(0xFF888888), fontSize: 11),
     );
   }

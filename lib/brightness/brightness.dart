@@ -25,22 +25,19 @@ Split splitLevel(double level) {
   return (backlight: backlightFloor, scrim: maxScrim * (1 - level / knee));
 }
 
-/// Auto mode moves the level between two user-set ends of a range: the
-/// "dark room" level at or below [darkAmbient] (about 1 lux) and the "bright
-/// room" level at or above [brightAmbient] (about 100 lux, an ordinary lit
-/// room as a phone lying on a table sees it). Values are normalized ambient
-/// light (see ClockPlatform.ambient).
+/// Auto brightness is a fixed curve over normalized ambient light (see
+/// ClockPlatform.ambient), calibrated by Anthony on his phone on 14 November:
+/// [darkRoomLevel] at or below [darkAmbient] (about 1 lux), full brightness
+/// at or above [brightAmbient] (about 100 lux, an ordinary lit room as a
+/// phone lying on a table sees it), and straight between them over log-lux,
+/// which is roughly how the eye judges light.
 const darkAmbient = 0.075;
 const brightAmbient = 0.5;
+const darkRoomLevel = 0.4;
 
-/// How far [ambient] is from the dark end toward the bright end, 0..1.
-double brightWeight(double ambient) =>
-    ((ambient - darkAmbient) / (brightAmbient - darkAmbient)).clamp(0.0, 1.0);
-
-/// Auto mode: interpolate between the two ends over log-lux.
-double autoLevel(double ambient, {required double dark, required double bright}) {
-  final t = brightWeight(ambient);
-  return dark + (bright - dark) * t;
+double autoLevel(double ambient) {
+  final t = ((ambient - darkAmbient) / (brightAmbient - darkAmbient)).clamp(0.0, 1.0);
+  return darkRoomLevel + (1 - darkRoomLevel) * t;
 }
 
 /// Inverse of the platform's normalization, for the debug readout only.

@@ -56,17 +56,15 @@ class TrackSlider extends StatelessWidget {
     super.key,
     required this.value,
     required this.onChanged,
-    this.onChangeEnd,
     required this.track,
     required this.thumb,
     required this.ring,
   });
 
   final double value;
-  final ValueChanged<double> onChanged;
 
-  /// Called when the finger lifts.
-  final VoidCallback? onChangeEnd;
+  /// Null makes the slider a read-only meter, drawn faded.
+  final ValueChanged<double>? onChanged;
 
   /// Colors spread evenly along the track.
   final List<Color> track;
@@ -77,20 +75,19 @@ class TrackSlider extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
       final width = constraints.maxWidth;
+      final paint = CustomPaint(
+        size: Size(width, 36),
+        painter: _TrackPainter(value.clamp(0.0, 1.0), track, thumb, ring),
+      );
+      final onChanged = this.onChanged;
+      if (onChanged == null) return Opacity(opacity: 0.45, child: paint);
       void at(double dx) => onChanged(((dx - _inset) / (width - 2 * _inset)).clamp(0.0, 1.0));
       return GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: (d) => at(d.localPosition.dx),
-        onTapUp: (_) => onChangeEnd?.call(),
-        onTapCancel: () => onChangeEnd?.call(),
         onHorizontalDragStart: (d) => at(d.localPosition.dx),
         onHorizontalDragUpdate: (d) => at(d.localPosition.dx),
-        onHorizontalDragEnd: (_) => onChangeEnd?.call(),
-        onHorizontalDragCancel: () => onChangeEnd?.call(),
-        child: CustomPaint(
-          size: Size(width, 36),
-          painter: _TrackPainter(value.clamp(0.0, 1.0), track, thumb, ring),
-        ),
+        child: paint,
       );
     });
   }

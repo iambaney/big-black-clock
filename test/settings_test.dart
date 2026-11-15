@@ -24,9 +24,9 @@ void main() {
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
     final store = await SettingsStore.open();
     expect(store.load().use24h, isNull);
-    await store.save(const Settings(showSeconds: true, use24h: true, darkLevel: 0.05));
+    await store.save(const Settings(showSeconds: true, use24h: true, manualLevel: 0.05));
     final again = (await SettingsStore.open()).load();
-    expect([again.showSeconds, again.use24h, again.darkLevel], [true, true, 0.05]);
+    expect([again.showSeconds, again.use24h, again.manualLevel], [true, true, 0.05]);
   });
 
   group('panel colors', () {

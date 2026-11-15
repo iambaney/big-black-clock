@@ -64,38 +64,37 @@ class _SettingsPanelState extends State<SettingsPanel> {
       ]);
     }
 
-    Widget level(String label, double value, ValueChanged<double> onChanged) => SizedBox(
-          height: 44,
-          child: Row(children: [
-            SizedBox(width: 110, child: Text(label)),
-            Expanded(
-              child: TrackSlider(
-                value: value,
-                onChanged: onChanged,
-                onChangeEnd: c.endBrightnessPreview,
-                track: [fg.withValues(alpha: 0.2), fg],
-                thumb: fg,
-                ring: bg,
-              ),
-            ),
-          ]),
-        );
-
-    // Auto brightness moves between the two levels as the room changes;
-    // without it there is one fixed level.
-    final brightness = [
-      if (c.autoAvailable) toggle('Auto brightness', s.autoBrightness, (v) => set(s.copyWith(autoBrightness: v))),
-      if (c.autoOn) ...[
-        level('Dark room', s.darkLevel, c.setDarkLevel),
-        level('Bright room', s.brightLevel, c.setBrightLevel),
-      ] else
-        level('Brightness', s.manualLevel, c.setManualLevel),
-    ];
+    // With auto on, the slider is a meter showing the level the light sensor
+    // has chosen; with auto off, it sets the level.
+    final brightness = SizedBox(
+      height: 44,
+      child: Row(children: [
+        const Text('Brightness'),
+        Expanded(
+          child: TrackSlider(
+            value: c.autoOn ? c.level : s.manualLevel,
+            onChanged: c.autoOn ? null : c.setManualLevel,
+            track: [fg.withValues(alpha: 0.2), fg],
+            thumb: fg,
+            ring: bg,
+          ),
+        ),
+        if (c.autoAvailable)
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => c.setAutoBrightness(!s.autoBrightness),
+            child: Row(children: [
+              const Text('Auto  '),
+              Toggle(value: s.autoBrightness, fg: fg, bg: bg),
+            ]),
+          ),
+      ]),
+    );
 
     final colorRows = [
       color('Clock color', 0, s.clockColor, (v) => set(s.copyWith(clockColor: v))),
       color('Background color', 1, s.backgroundColor, (v) => set(s.copyWith(backgroundColor: v))),
-      ...brightness,
+      brightness,
     ];
     final toggleRows = [
       toggle('24-hour time', widget.use24h, (v) => set(s.copyWith(use24h: v))),
