@@ -9,6 +9,18 @@
     <uses-permission
         android:name="${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
         tools:node="remove" />
+    <!-- Optional, and only grantable by hand over adb:
+           adb shell pm grant zip.iambaney.bigblackclock android.permission.DUMP
+           adb shell appops set zip.iambaney.bigblackclock GET_USAGE_STATS allow
+         Together they let the app read the full alarm list (the alarm
+         service's dump requires both), so fake "alarm clocks" from other apps
+         cannot hide the real next alarm. See ClockBridge.kt. -->
+    <uses-permission
+        android:name="android.permission.DUMP"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
     <application
         android:label="Big Black Clock"
         android:name="${applicationName}"

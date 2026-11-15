@@ -19,6 +19,17 @@ flutter build apk --release --split-per-abi
 adb install -r build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
 ```
 
+## Accurate next alarm (optional, one time)
+
+Android only tells apps about the earliest "alarm clock" on the phone, and some apps register background timers that way (on Samsung phones, Find My Mobile does it all day). Without help, the clock shows the next alarm only when the earliest entry is a real one, and nothing otherwise. To let it read the full alarm list instead, grant two permissions over USB once after installing:
+
+```sh
+adb shell pm grant zip.iambaney.bigblackclock android.permission.DUMP
+adb shell appops set zip.iambaney.bigblackclock GET_USAGE_STATS allow
+```
+
+Updates keep the grant; uninstalling removes it. Neither permission gives network access; the app has none.
+
 ## Test
 
 ```sh

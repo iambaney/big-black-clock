@@ -69,6 +69,8 @@ class _ClockAppState extends State<ClockApp> {
               child: ColoredBox(
                 color: s.backgroundColor.toColor(),
                 child: SafeArea(
+                  // Just enough margin that the burn-in drift stays on screen.
+                  minimum: const EdgeInsets.all(burnInRadius + 1),
                   child: Center(
                     child: Transform.translate(
                       offset: burnInOffset(c.now),

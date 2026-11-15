@@ -40,24 +40,6 @@ class ClockFace extends StatelessWidget {
       );
       final fontSize = layout.secondaryFontSize;
       final style = TextStyle(color: color, fontSize: fontSize, height: 1, fontWeight: FontWeight.w500);
-      final date = showDate ? Text(dateLabel(now), style: style) : null;
-      final alarmText = alarm == null
-          ? null
-          : Row(mainAxisSize: MainAxisSize.min, children: [
-              CustomPaint(size: Size.square(fontSize), painter: BellPainter(color)),
-              SizedBox(width: fontSize * 0.3),
-              Text(alarm!, style: style),
-            ]);
-      final lines = layout.secondaryLines == 2
-          ? [date!, alarmText!]
-          : [
-              if (date != null || alarmText != null)
-                Row(mainAxisSize: MainAxisSize.min, children: [
-                  ?date,
-                  if (date != null && alarmText != null) SizedBox(width: fontSize * 1.2),
-                  ?alarmText,
-                ]),
-            ];
 
       return Column(mainAxisSize: MainAxisSize.min, children: [
         CustomPaint(
@@ -69,13 +51,25 @@ class ClockFace extends StatelessWidget {
             showSeconds: showSeconds,
           ),
         ),
-        if (lines.isNotEmpty) SizedBox(height: layout.secondaryGap),
-        for (final line in lines)
+        if (layout.hasSecondary) ...[
+          SizedBox(height: layout.secondaryGap),
           SizedBox(
-            width: constraints.maxWidth * fillFraction,
+            width: constraints.maxWidth,
             height: layout.digitHeight * Units.secondaryLine,
-            child: FittedBox(fit: BoxFit.scaleDown, child: line),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                if (showDate) Text(dateLabel(now), style: style),
+                if (showDate && alarm != null) SizedBox(width: fontSize * 1.2),
+                if (alarm != null) ...[
+                  CustomPaint(size: Size.square(fontSize), painter: BellPainter(color)),
+                  SizedBox(width: fontSize * 0.3),
+                  Text(alarm!, style: style),
+                ],
+              ]),
+            ),
           ),
+        ],
       ]);
     });
   }
@@ -110,7 +104,9 @@ class BellPainter extends CustomPainter {
 
 /// Burn-in protection: the face drifts around a small circle, one step a
 /// minute, a full lap an hour.
-Offset burnInOffset(DateTime t, {double radius = 3}) {
+const burnInRadius = 3.0;
+
+Offset burnInOffset(DateTime t) {
   final angle = 2 * math.pi * (t.minute / 60);
-  return Offset(radius * math.cos(angle), radius * math.sin(angle));
+  return Offset(burnInRadius * math.cos(angle), burnInRadius * math.sin(angle));
 }

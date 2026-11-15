@@ -68,10 +68,11 @@ int alarmExtraDays(DateTime alarm, DateTime now) {
   return alarmDay.difference(firstDay).inDays;
 }
 
-/// The next alarm: its time, plus "+N" when it is not the next occurrence of
-/// that time ("8:00 AM +1").
+/// The next alarm: its time, plus "+N days" when it is not the next
+/// occurrence of that time ("8:00 AM +1 day").
 String alarmLabel(DateTime alarm, DateTime now, {required bool use24h}) {
   final time = timeLabel(alarm, use24h: use24h);
   final extra = alarmExtraDays(alarm, now);
-  return extra > 0 ? '$time +$extra' : time;
+  if (extra == 0) return time;
+  return '$time +$extra ${extra == 1 ? 'day' : 'days'}';
 }

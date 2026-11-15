@@ -88,26 +88,9 @@ class TimePainter extends CustomPainter {
     final h = layout.digitHeight;
     final small = h * Units.smallScale;
     final side = layout.sideColumnWidth;
-    final digitsArea = size.width - side;
 
-    if (layout.arrangement == Arrangement.stacked) {
-      // Hours sit in fixed slots, so a one-digit hour leaves the first slot blank.
-      final pair = digitsWidth(h, 2);
-      final x = (digitsArea - pair) / 2;
-      final hoursX = x + digitsWidth(h, 2) - digitsWidth(h, time.hours.length);
-      paintDigits(canvas, paint, Offset(hoursX, 0), h, time.hours);
-      final minutesY = h * (1 + Units.rowGap);
-      paintDigits(canvas, paint, Offset(x, minutesY), h, time.minutes);
-      final sideX = x + pair + h * Units.sideGap;
-      _paintPeriod(canvas, Offset(sideX, 0));
-      if (showSeconds) {
-        paintDigits(canvas, paint, Offset(sideX, minutesY + h - small), small, time.seconds);
-      }
-      return;
-    }
-
-    // Row: the visible content is centered, so a one-digit hour shifts the
-    // time by half a digit twice a day; the digit size never changes.
+    // The visible content is centered, so a one-digit hour shifts the time by
+    // half a digit twice a day; the digit size never changes.
     final hoursW = digitsWidth(h, time.hours.length);
     final colon = h * Units.colonWidth;
     final contentW = hoursW + colon + digitsWidth(h, 2) + side;

@@ -1,27 +1,41 @@
 package zip.iambaney.bigblackclock
 
+import android.Manifest
 import android.app.Activity
 import android.app.AlarmManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Build
+import android.os.Debug
+import android.os.Handler
+import android.os.Looper
+import android.os.ParcelFileDescriptor
 import android.view.WindowManager
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
+import java.io.ByteArrayOutputStream
+import java.util.concurrent.Executors
+import kotlin.concurrent.thread
 import kotlin.math.ln
 
-/** The Android side of lib/platform/clock_platform.dart. Needs no permissions. */
+/**
+ * The Android side of lib/platform/clock_platform.dart. The only permission
+ * it uses is the optional DUMP grant described at [nextRealAlarm].
+ */
 class ClockBridge(private val activity: Activity, messenger: BinaryMessenger) {
     private val sensors = activity.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private val alarms = activity.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     private val lightSensor: Sensor? = sensors.getDefaultSensor(Sensor.TYPE_LIGHT)
+    private val worker = Executors.newSingleThreadExecutor()
+    private val main = Handler(Looper.getMainLooper())
 
     init {
         MethodChannel(messenger, "$PREFIX/platform").setMethodCallHandler { call, result ->
@@ -63,9 +77,18 @@ class ClockBridge(private val activity: Activity, messenger: BinaryMessenger) {
         // longer keep up to date.
         EventChannel(messenger, "$PREFIX/alarm").setStreamHandler(object : EventChannel.StreamHandler {
             private var receiver: BroadcastReceiver? = null
+            private var sink: EventChannel.EventSink? = null
 
             override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
-                val send = { events.success(nextRealAlarm()) }
+                sink = events
+                // Reading the full alarm list takes a moment, so it runs off
+                // the main thread.
+                val send = {
+                    worker.execute {
+                        val next = nextRealAlarm()
+                        main.post { sink?.success(next) }
+                    }
+                }
                 val filter = IntentFilter(AlarmManager.ACTION_NEXT_ALARM_CLOCK_CHANGED)
                 receiver = object : BroadcastReceiver() {
                     override fun onReceive(context: Context, intent: Intent) = send()
@@ -82,23 +105,83 @@ class ClockBridge(private val activity: Activity, messenger: BinaryMessenger) {
             override fun onCancel(arguments: Any?) {
                 receiver?.let(activity::unregisterReceiver)
                 receiver = null
+                sink = null
             }
         })
     }
 
     /**
-     * The next alarm clock, unless it is not really an alarm. Some apps use
-     * setAlarmClock for background timers because it survives Doze (Samsung
-     * Find My Mobile re-arms one about two hours ahead all day, and Samsung
-     * Clock registers its bedtime and wake-up reminders the same way). Those
-     * attach a broadcast as the "show" intent; real alarms attach an activity
-     * that opens the alarm screen. Android 11 and older cannot tell the two
-     * apart, so everything passes there.
+     * The next real alarm. Some apps use setAlarmClock for background timers
+     * because it survives Doze (Samsung Find My Mobile re-arms one about two
+     * hours ahead all day, and Samsung Clock registers its bedtime and wake-up
+     * reminders the same way). Those attach a broadcast as the "show" intent;
+     * real alarms attach an activity that opens the alarm screen.
+     *
+     * AlarmManager reports only the earliest alarm clock, which on such a
+     * phone is nearly always a fake. With DUMP and usage access (both granted
+     * once over adb; see AndroidManifest.xml) the whole list can be read and
+     * the earliest real alarm picked.
+     * Without it, or if the list cannot be parsed, the earliest entry is used
+     * only when it is real. Android 11 and older cannot tell the two apart, so
+     * everything passes there.
      */
     private fun nextRealAlarm(): Long? {
         val info = alarms.nextAlarmClock ?: return null
+        if (activity.checkSelfPermission(Manifest.permission.DUMP) == PackageManager.PERMISSION_GRANTED) {
+            dumpedAlarmClocks()?.let { clocks ->
+                val now = System.currentTimeMillis()
+                return clocks.filter { it.opensActivity && it.time > now }.minOfOrNull { it.time }
+            }
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && info.showIntent?.isActivity != true) return null
         return info.triggerTime
+    }
+
+    private class AlarmClockEntry(val time: Long, val opensActivity: Boolean)
+
+    /**
+     * Every alarm clock in the system's alarm dump, or null if the dump could
+     * not be read or no entry in it was recognized. The entries look like:
+     *
+     *     RTC_WAKEUP #94: Alarm{d62709c type 0 origWhen 1794844800000 whenElapsed 821778061 com.sec.android.app.clockpackage}
+     *       ...
+     *       Alarm clock:
+     *         triggerTime=2026-11-16 08:00:00.000
+     *         showIntent=PendingIntent{5e1aaa5: PendingIntentRecord{ca40446 com.sec.android.app.clockpackage startActivity}}
+     */
+    private fun dumpedAlarmClocks(): List<AlarmClockEntry>? {
+        val text = dump("alarm") ?: return null
+        val header = Regex("""Alarm\{\w+ type \d+ origWhen (\d+) """)
+        val entries = mutableListOf<AlarmClockEntry>()
+        var time: Long? = null
+        var inAlarmClock = false
+        for (line in text.lineSequence()) {
+            val match = header.find(line)
+            if (match != null) {
+                time = match.groupValues[1].toLong()
+                inAlarmClock = false
+                continue
+            }
+            val trimmed = line.trim()
+            if (trimmed == "Alarm clock:") {
+                inAlarmClock = true
+            } else if (inAlarmClock && trimmed.startsWith("showIntent=")) {
+                time?.let { entries += AlarmClockEntry(it, trimmed.contains(" startActivit")) }
+                inAlarmClock = false
+            }
+        }
+        return entries.ifEmpty { null }
+    }
+
+    /** A system service's debug dump as text. Needs the DUMP permission. */
+    private fun dump(service: String): String? {
+        val (read, write) = ParcelFileDescriptor.createPipe()
+        val output = ByteArrayOutputStream()
+        // Drain the pipe while the service writes, or a large dump would block.
+        val reader = thread { ParcelFileDescriptor.AutoCloseInputStream(read).use { it.copyTo(output) } }
+        val ok = write.use { Debug.dumpService(service, it.fileDescriptor, arrayOf()) }
+        reader.join(5_000)
+        return if (ok) output.toString() else null
     }
 
     companion object {
