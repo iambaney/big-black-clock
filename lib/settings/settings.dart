@@ -1,7 +1,7 @@
 import 'package:flutter/painting.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// The seven settings, plus the manual level behind setting 3.
+/// The eight settings, plus the manual level behind setting 3.
 class Settings {
   const Settings({
     this.clockColor = const HSVColor.fromAHSV(1, 0, 1, 1),
@@ -12,6 +12,7 @@ class Settings {
     this.showSeconds = false,
     this.showDate = true,
     this.showAlarm = true,
+    this.showBattery = true,
   });
 
   /// Kept as HSV so hue and saturation survive a color turned all the way to
@@ -29,6 +30,7 @@ class Settings {
   final bool showSeconds;
   final bool showDate;
   final bool showAlarm;
+  final bool showBattery;
 
   Settings copyWith({
     HSVColor? clockColor,
@@ -39,6 +41,7 @@ class Settings {
     bool? showSeconds,
     bool? showDate,
     bool? showAlarm,
+    bool? showBattery,
   }) =>
       Settings(
         clockColor: clockColor ?? this.clockColor,
@@ -49,6 +52,7 @@ class Settings {
         showSeconds: showSeconds ?? this.showSeconds,
         showDate: showDate ?? this.showDate,
         showAlarm: showAlarm ?? this.showAlarm,
+        showBattery: showBattery ?? this.showBattery,
       );
 }
 
@@ -73,6 +77,7 @@ class SettingsStore {
       showSeconds: _prefs.getBool('showSeconds') ?? d.showSeconds,
       showDate: _prefs.getBool('showDate') ?? d.showDate,
       showAlarm: _prefs.getBool('showAlarm') ?? d.showAlarm,
+      showBattery: _prefs.getBool('showBattery') ?? d.showBattery,
     );
   }
 
@@ -85,6 +90,7 @@ class SettingsStore {
         _prefs.setBool('showSeconds', s.showSeconds),
         _prefs.setBool('showDate', s.showDate),
         _prefs.setBool('showAlarm', s.showAlarm),
+        _prefs.setBool('showBattery', s.showBattery),
       ]);
 
   HSVColor? _color(String key) {

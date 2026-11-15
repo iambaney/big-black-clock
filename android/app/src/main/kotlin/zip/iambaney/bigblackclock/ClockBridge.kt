@@ -12,6 +12,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.BatteryManager
 import android.os.Build
 import android.os.Debug
 import android.os.Handler
@@ -25,10 +26,12 @@ import java.io.ByteArrayOutputStream
 import java.util.concurrent.Executors
 import kotlin.concurrent.thread
 import kotlin.math.ln
+import kotlin.math.roundToInt
 
 /**
  * The Android side of lib/platform/clock_platform.dart. The only permission
- * it uses is the optional DUMP grant described at [nextRealAlarm].
+ * it uses is the optional DUMP grant described at [nextRealAlarm]; the
+ * battery broadcast needs none.
  */
 class ClockBridge(private val activity: Activity, messenger: BinaryMessenger) {
     private val sensors = activity.getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -41,7 +44,7 @@ class ClockBridge(private val activity: Activity, messenger: BinaryMessenger) {
         MethodChannel(messenger, "$PREFIX/platform").setMethodCallHandler { call, result ->
             when (call.method) {
                 "capabilities" -> result.success(
-                    mapOf("ambientLight" to (lightSensor != null), "nextAlarm" to true)
+                    mapOf("ambientLight" to (lightSensor != null), "nextAlarm" to true, "battery" to true)
                 )
                 "setBrightness" -> {
                     // Affects only this window, and only while it is in the foreground.
@@ -92,13 +95,7 @@ class ClockBridge(private val activity: Activity, messenger: BinaryMessenger) {
                 val filter = IntentFilter(AlarmManager.ACTION_NEXT_ALARM_CLOCK_CHANGED)
                 receiver = object : BroadcastReceiver() {
                     override fun onReceive(context: Context, intent: Intent) = send()
-                }.also {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        activity.registerReceiver(it, filter, Context.RECEIVER_NOT_EXPORTED)
-                    } else {
-                        activity.registerReceiver(it, filter)
-                    }
-                }
+                }.also { register(it, filter) }
                 send()
             }
 
@@ -108,6 +105,51 @@ class ClockBridge(private val activity: Activity, messenger: BinaryMessenger) {
                 sink = null
             }
         })
+
+        // The system re-broadcasts the battery state every few seconds while
+        // charging; only a new percentage or a charger change is sent on.
+        EventChannel(messenger, "$PREFIX/battery").setStreamHandler(object : EventChannel.StreamHandler {
+            private var receiver: BroadcastReceiver? = null
+
+            override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
+                receiver = object : BroadcastReceiver() {
+                    private var last: Map<String, Any>? = null
+
+                    override fun onReceive(context: Context, intent: Intent) {
+                        val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+                        val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+                        if (level < 0 || scale <= 0) return
+                        val state = mapOf(
+                            "percent" to (level * 100f / scale).roundToInt(),
+                            // Plugged in, as the status bar's bolt means it: a
+                            // full battery, or one Samsung holds at 85% to
+                            // protect it, still counts.
+                            "charging" to (intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0),
+                        )
+                        if (state == last) return
+                        last = state
+                        events.success(state)
+                    }
+                }.also {
+                    // A sticky broadcast: registering delivers the current state at once.
+                    register(it, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+                }
+            }
+
+            override fun onCancel(arguments: Any?) {
+                receiver?.let(activity::unregisterReceiver)
+                receiver = null
+            }
+        })
+    }
+
+    /** For system broadcasts, which still reach a receiver closed to other apps. */
+    private fun register(receiver: BroadcastReceiver, filter: IntentFilter) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            activity.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            activity.registerReceiver(receiver, filter)
+        }
     }
 
     /**

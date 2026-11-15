@@ -3,8 +3,15 @@ import 'dart:ui';
 import 'package:bigblackclock/clock/face_layout.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-FaceLayout fit(Size area, {bool seconds = false, bool period = true, bool date = true, bool alarm = true}) =>
-    fitFace(area, seconds: seconds, period: period, date: date, alarm: alarm);
+FaceLayout fit(
+  Size area, {
+  bool seconds = false,
+  bool period = true,
+  bool date = true,
+  bool alarm = true,
+  bool battery = false,
+}) =>
+    fitFace(area, seconds: seconds, period: period, date: date, alarm: alarm, battery: battery);
 
 void main() {
   test('the face always fits inside the area, with the time on one line', () {
@@ -33,5 +40,9 @@ void main() {
       fit(const Size(800, 300), date: false, alarm: false).digitHeight,
       greaterThan(fit(const Size(800, 300)).digitHeight),
     );
+  });
+
+  test('the battery alone keeps the line under the time', () {
+    expect(fit(const Size(800, 300), date: false, alarm: false, battery: true).hasSecondary, isTrue);
   });
 }

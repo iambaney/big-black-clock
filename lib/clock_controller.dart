@@ -6,8 +6,8 @@ import 'brightness/brightness.dart';
 import 'platform/clock_platform.dart';
 import 'settings/settings.dart';
 
-/// The single state holder: current time, settings, next alarm, ambient light
-/// and the brightness level being applied. Runs only between [start] and
+/// The single state holder: current time, settings, next alarm, battery,
+/// ambient light and the brightness level being applied. Runs only between [start] and
 /// [stop], which follow the app being visible.
 class ClockController extends ChangeNotifier {
   ClockController({
@@ -30,6 +30,11 @@ class ClockController extends ChangeNotifier {
 
   DateTime? _nextAlarm;
   DateTime? get nextAlarm => _nextAlarm;
+
+  Battery? _battery;
+
+  /// Null until the platform reports it, and on platforms that cannot.
+  Battery? get battery => _battery;
 
   Capabilities _capabilities = const Capabilities();
   Capabilities get capabilities => _capabilities;
@@ -61,6 +66,7 @@ class ClockController extends ChangeNotifier {
   double? _appliedBacklight;
   StreamSubscription<double>? _ambientSub;
   StreamSubscription<DateTime?>? _alarmSub;
+  StreamSubscription<Battery>? _batterySub;
 
   Future<void> start() async {
     if (_running) return;
@@ -75,6 +81,12 @@ class ClockController extends ChangeNotifier {
         notifyListeners();
       });
     }
+    if (_capabilities.battery) {
+      _batterySub = _platform.battery().listen((b) {
+        _battery = b;
+        notifyListeners();
+      });
+    }
     if (_capabilities.ambientLight) _ambientSub = _platform.ambient().listen(_onAmbient);
     _snapToTarget();
   }
@@ -86,8 +98,10 @@ class ClockController extends ChangeNotifier {
     _ramp = null;
     _ambientSub?.cancel();
     _alarmSub?.cancel();
+    _batterySub?.cancel();
     _ambientSub = null;
     _alarmSub = null;
+    _batterySub = null;
     _appliedBacklight = null;
     _flushSave();
   }
