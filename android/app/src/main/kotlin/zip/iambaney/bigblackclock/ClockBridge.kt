@@ -3,6 +3,7 @@ package zip.iambaney.bigblackclock
 import android.Manifest
 import android.app.Activity
 import android.app.AlarmManager
+import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -12,6 +13,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Debug
@@ -53,6 +55,26 @@ class ClockBridge(private val activity: Activity, messenger: BinaryMessenger) {
                         screenBrightness = level?.toFloat() ?: WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
                     }
                     result.success(null)
+                }
+                "appVersion" -> {
+                    val packages = activity.packageManager
+                    val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        packages.getPackageInfo(activity.packageName, PackageManager.PackageInfoFlags.of(0))
+                    } else {
+                        @Suppress("DEPRECATION")
+                        packages.getPackageInfo(activity.packageName, 0)
+                    }
+                    result.success(info.versionName)
+                }
+                "openUrl" -> {
+                    // The browser fetches the page; this app still has no internet access.
+                    val opened = try {
+                        activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(call.arguments as String)))
+                        true
+                    } catch (e: ActivityNotFoundException) {
+                        false
+                    }
+                    result.success(opened)
                 }
                 else -> result.notImplemented()
             }

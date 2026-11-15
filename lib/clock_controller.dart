@@ -39,6 +39,11 @@ class ClockController extends ChangeNotifier {
   Capabilities _capabilities = const Capabilities();
   Capabilities get capabilities => _capabilities;
 
+  String? _appVersion;
+
+  /// This build's version, once the platform has reported it.
+  String? get appVersion => _appVersion;
+
   final _ambient = AmbientFilter();
 
   /// Smoothed ambient light, null until the first reading.
@@ -72,6 +77,7 @@ class ClockController extends ChangeNotifier {
     if (_running) return;
     _running = true;
     _capabilities = await _platform.capabilities();
+    _appVersion ??= await _platform.appVersion();
     if (!_running) return;
     _tickNow();
     _snapOnNextReading = true;
@@ -126,6 +132,8 @@ class ClockController extends ChangeNotifier {
   /// screen does not jump.
   void setAutoBrightness(bool on) =>
       update(_settings.copyWith(autoBrightness: on, manualLevel: on ? null : _level));
+
+  void openUrl(String url) => _platform.openUrl(url);
 
   void _flushSave() {
     _save?.cancel();

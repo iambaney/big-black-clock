@@ -33,6 +33,12 @@ abstract interface class ClockPlatform {
   /// Sets this app's window brightness, 0..1; null hands control back to the
   /// system.
   Future<void> setBrightness(double? level);
+
+  /// This build's version name, such as "1.0.0"; null if unknown.
+  Future<String?> appVersion();
+
+  /// Opens [url] in the browser; false if nothing could open it.
+  Future<bool> openUrl(String url);
 }
 
 /// [ClockPlatform] over the channels implemented in
@@ -78,6 +84,24 @@ class ChannelClockPlatform implements ClockPlatform {
       await _methods.invokeMethod<void>('setBrightness', level);
     } on MissingPluginException {
       // No native side on this platform; the scrim still dims.
+    }
+  }
+
+  @override
+  Future<String?> appVersion() async {
+    try {
+      return await _methods.invokeMethod<String>('appVersion');
+    } on MissingPluginException {
+      return null;
+    }
+  }
+
+  @override
+  Future<bool> openUrl(String url) async {
+    try {
+      return await _methods.invokeMethod<bool>('openUrl', url) ?? false;
+    } on MissingPluginException {
+      return false;
     }
   }
 }
