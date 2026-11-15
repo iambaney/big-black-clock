@@ -1,3 +1,5 @@
+<img width="1920" height="1080" alt="1" src="https://github.com/user-attachments/assets/93f089f2-84ef-4e55-80e6-1d96c31e2319" />
+
 # Big Black Clock
 
 A huge, quiet desk and nightstand clock for Android. Seven-segment digits in your own colors, brightness that follows the room, and the date, next alarm and battery under the time. One small settings panel; no ads, no accounts and no internet access.
