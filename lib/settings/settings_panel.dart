@@ -8,7 +8,7 @@ import 'controls.dart';
 /// Published from PRIVACY.md at the repo root.
 const privacyPolicyUrl = 'https://github.com/iambaney/big-black-clock/blob/main/PRIVACY.md';
 
-/// The eight-item panel, plus a button that closes the app and a line with the
+/// The nine-item panel, plus a button that closes the app and a line with the
 /// privacy policy and version. Every change is applied as it happens.
 class SettingsPanel extends StatefulWidget {
   const SettingsPanel({super.key, required this.controller, required this.use24h});
@@ -25,6 +25,10 @@ class SettingsPanel extends StatefulWidget {
 class _SettingsPanelState extends State<SettingsPanel> {
   /// Which color row is expanded: 0 clock, 1 background, null neither.
   int? _expanded;
+
+  /// A finger is on the position slider; the panel fades so the face shows
+  /// through as it moves.
+  bool _positioning = false;
 
   @override
   Widget build(BuildContext context) {
@@ -97,10 +101,36 @@ class _SettingsPanelState extends State<SettingsPanel> {
       ]),
     );
 
+    // Only portrait has room to move the face; landscape fills the screen.
+    void positioning(bool on) => setState(() => _positioning = on);
+    final position = Listener(
+      onPointerDown: (_) => positioning(true),
+      onPointerUp: (_) => positioning(false),
+      onPointerCancel: (_) => positioning(false),
+      child: SizedBox(
+        height: 44,
+        child: Row(children: [
+          const Text('Vertical position'),
+          Expanded(
+            child: TrackSlider(
+              value: s.portraitPosition,
+              // A little pull toward the middle, so the face is easy to center.
+              onChanged: (v) => set(s.copyWith(portraitPosition: (v - 0.5).abs() < 0.03 ? 0.5 : v)),
+              track: [fg.withValues(alpha: 0.4), fg.withValues(alpha: 0.4)],
+              thumb: fg,
+              ring: bg,
+            ),
+          ),
+        ]),
+      ),
+    );
+    final portrait = MediaQuery.orientationOf(context) == Orientation.portrait;
+
     final colorRows = [
       color('Clock color', 0, s.clockColor, (v) => set(s.copyWith(clockColor: v))),
       color('Background color', 1, s.backgroundColor, (v) => set(s.copyWith(backgroundColor: v))),
       brightness,
+      if (portrait) position,
     ];
     final toggleRows = [
       toggle('24-hour time', widget.use24h, (v) => set(s.copyWith(use24h: v))),
@@ -158,7 +188,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
           ])
         : Column(mainAxisSize: MainAxisSize.min, children: [...colorRows, ...toggleRows, ?close, about]);
 
-    return ConstrainedBox(
+    final panel = ConstrainedBox(
       constraints: BoxConstraints(maxWidth: wide ? 820 : 560, maxHeight: screen.height * 0.85),
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -177,6 +207,11 @@ class _SettingsPanelState extends State<SettingsPanel> {
           ),
         ),
       ),
+    );
+    return AnimatedOpacity(
+      opacity: _positioning ? 0.2 : 1,
+      duration: const Duration(milliseconds: 150),
+      child: panel,
     );
   }
 }

@@ -12,6 +12,7 @@ void main() {
       [s.autoBrightness, s.showSeconds, s.showDate, s.showAlarm, s.showBattery, s.use24h],
       [true, false, true, true, true, null],
     );
+    expect(s.portraitPosition, 1 / 6, reason: 'top third');
   });
 
   test('settings survive encoding, including hue on a color turned to black', () {
@@ -21,17 +22,31 @@ void main() {
       use24h: true,
       manualLevel: 0.05,
       showBattery: false,
+      portraitPosition: 0.9,
     ).encode());
     expect([s.backgroundColor.hue, s.backgroundColor.saturation, s.backgroundColor.value], [210, 0.5, 0]);
-    expect([s.showSeconds, s.use24h, s.manualLevel, s.showBattery], [true, true, 0.05, false]);
+    expect([s.showSeconds, s.use24h, s.manualLevel, s.showBattery, s.portraitPosition], [true, true, 0.05, false, 0.9]);
   });
 
   test('missing or unreadable settings fall back to the defaults', () {
-    for (final encoded in [null, '', 'nonsense', '[1, 2]', '{"clockColor": "red", "showDate": 3, "manualLevel": "x"}']) {
+    for (final encoded in [
+      null,
+      '',
+      'nonsense',
+      '[1, 2]',
+      '{"clockColor": "red", "showDate": 3, "manualLevel": "x", "portraitPosition": "low"}',
+    ]) {
       final s = Settings.decode(encoded);
-      expect([s.clockColor, s.showDate, s.manualLevel, s.use24h], [const Settings().clockColor, true, 0.5, null],
-          reason: '$encoded');
+      expect(
+        [s.clockColor, s.showDate, s.manualLevel, s.use24h, s.portraitPosition],
+        [const Settings().clockColor, true, 0.5, null, 1 / 6],
+        reason: '$encoded',
+      );
     }
+  });
+
+  test('settings saved before the position existed keep the face in the top third', () {
+    expect(Settings.decode('{"showDate": false}').portraitPosition, 1 / 6);
   });
 
   group('panel colors', () {
