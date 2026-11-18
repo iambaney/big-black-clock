@@ -11,8 +11,15 @@ abstract final class Units {
   /// Seconds digits relative to the main digits.
   static const smallScale = 0.42;
   static const sideGap = 0.1;
-  static const periodFont = 0.2;
-  static const periodWidth = 0.34;
+
+  /// A 1 lights only the right edge of its slot, leaving this much blank on
+  /// the left. In 12-hour time a two-digit hour always starts with a 1, and
+  /// AM/PM fits in that blank, so 12-hour digits are as big as 24-hour ones.
+  static const oneBlank = digitWidth - stroke;
+  static const periodWidth = oneBlank - sideGap;
+
+  /// AM/PM in Roboto Bold at this size is just under [periodWidth] wide.
+  static const periodFont = 0.18;
 
   static const secondaryGap = 0.08;
   static const secondaryFont = 0.16;
@@ -63,7 +70,8 @@ class FaceLayout {
 /// possible inside [area] with the date, alarm and battery line (if any)
 /// below it.
 /// Sizes come from the widest possible time, so the result does not change
-/// from minute to minute.
+/// from minute to minute. AM/PM takes no extra width (see [Units.oneBlank]),
+/// so the digits are the same size in 12-hour and 24-hour time.
 FaceLayout fitFace(
   Size area, {
   required bool seconds,
@@ -78,7 +86,7 @@ FaceLayout fitFace(
           ? Units.sideGap + Units.periodWidth
           : 0.0;
   final hasSecondary = date || alarm || battery;
-  final width = 2 * Units.pairWidth + Units.colonWidth + side;
+  final width = 2 * Units.pairWidth + Units.colonWidth + (seconds ? side : 0);
   final height = 1 + (hasSecondary ? Units.secondaryGap + Units.secondaryLine : 0);
   final h = math.min(area.width / width, area.height / height);
   return FaceLayout(

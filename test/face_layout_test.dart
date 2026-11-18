@@ -42,6 +42,20 @@ void main() {
     );
   });
 
+  test('12-hour digits are as big as 24-hour digits', () {
+    for (final area in const [Size(800, 360), Size(360, 800), Size(2000, 200)]) {
+      for (final seconds in [false, true]) {
+        expect(
+          fit(area, seconds: seconds, period: true).digitHeight,
+          fit(area, seconds: seconds, period: false).digitHeight,
+          reason: '$area, seconds: $seconds',
+        );
+      }
+    }
+    // "12:59 PM", centered on the 1's lit edge, is exactly as wide as "23:59".
+    expect(Units.pairWidth - Units.oneBlank + Units.sideGap + Units.periodWidth, closeTo(Units.pairWidth, 1e-9));
+  });
+
   test('the battery alone keeps the line under the time', () {
     expect(fit(const Size(800, 300), date: false, alarm: false, battery: true).hasSecondary, isTrue);
   });

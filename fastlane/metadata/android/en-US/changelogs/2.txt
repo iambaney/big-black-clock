@@ -1,0 +1,1 @@
+• 12-hour time now shows digits as large as 24-hour time

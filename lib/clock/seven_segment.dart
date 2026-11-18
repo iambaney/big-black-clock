@@ -90,11 +90,13 @@ class TimePainter extends CustomPainter {
     final side = layout.sideColumnWidth;
 
     // The visible content is centered, so a one-digit hour shifts the time by
-    // half a digit twice a day; the digit size never changes.
+    // half a digit twice a day; the digit size never changes. A 12-hour "1x"
+    // is centered on the 1's lit edge, which makes room for AM/PM.
     final hoursW = digitsWidth(h, time.hours.length);
+    final blank = time.period != null && time.hours.length == 2 ? h * Units.oneBlank : 0.0;
     final colon = h * Units.colonWidth;
-    final contentW = hoursW + colon + digitsWidth(h, 2) + side;
-    var x = (size.width - contentW) / 2;
+    final contentW = hoursW - blank + colon + digitsWidth(h, 2) + side;
+    var x = (size.width - contentW) / 2 - blank;
     paintDigits(canvas, paint, Offset(x, 0), h, time.hours);
     x += hoursW;
     final dot = h * Units.stroke;
@@ -111,16 +113,22 @@ class TimePainter extends CustomPainter {
   void _paintPeriod(Canvas canvas, Offset at) {
     final period = time.period;
     if (period == null) return;
-    final fontSize = layout.digitHeight * Units.periodFont;
-    TextPainter(
-      text: TextSpan(
-        text: period,
-        style: TextStyle(color: color, fontSize: fontSize, fontWeight: FontWeight.bold, height: 1),
-      ),
-      textDirection: TextDirection.ltr,
-    )
-      ..layout()
-      ..paint(canvas, at);
+    var fontSize = layout.digitHeight * Units.periodFont;
+    TextPainter text() => TextPainter(
+          text: TextSpan(
+            text: period,
+            style: TextStyle(color: color, fontSize: fontSize, fontWeight: FontWeight.bold, height: 1),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
+    var painter = text();
+    // A system font wider than Roboto is scaled down to fit its column.
+    final room = layout.digitHeight * Units.periodWidth;
+    if (painter.width > room) {
+      fontSize *= room / painter.width;
+      painter = text();
+    }
+    painter.paint(canvas, at);
   }
 
   @override
