@@ -93,6 +93,7 @@ class _ClockAppState extends State<ClockApp> {
                           color: s.clockColor.toColor(),
                           showSeconds: s.showSeconds,
                           showDate: s.showDate,
+                          lineAtBottom: !portrait,
                           alarm: alarm,
                           battery: s.showBattery ? c.battery : null,
                         ),
