@@ -2,13 +2,14 @@ import 'dart:convert';
 
 import 'package:flutter/painting.dart';
 
-/// The eight settings, plus the manual level behind setting 3.
+/// The nine settings, plus the manual level behind setting 3.
 class Settings {
   const Settings({
     this.clockColor = const HSVColor.fromAHSV(1, 0, 1, 1),
     this.backgroundColor = const HSVColor.fromAHSV(1, 0, 0, 0),
     this.autoBrightness = true,
     this.manualLevel = 0.5,
+    this.portraitPosition = 1 / 6,
     this.use24h,
     this.showSeconds = false,
     this.showDate = true,
@@ -26,6 +27,10 @@ class Settings {
   /// Brightness level when auto brightness is off.
   final double manualLevel;
 
+  /// Where the face sits in portrait, as a share of the free space above it:
+  /// 0 at the top, 1 at the bottom. The default puts it in the top third.
+  final double portraitPosition;
+
   /// Null until the user picks; until then the system's 24-hour setting applies.
   final bool? use24h;
   final bool showSeconds;
@@ -38,6 +43,7 @@ class Settings {
     HSVColor? backgroundColor,
     bool? autoBrightness,
     double? manualLevel,
+    double? portraitPosition,
     bool? use24h,
     bool? showSeconds,
     bool? showDate,
@@ -49,6 +55,7 @@ class Settings {
         backgroundColor: backgroundColor ?? this.backgroundColor,
         autoBrightness: autoBrightness ?? this.autoBrightness,
         manualLevel: manualLevel ?? this.manualLevel,
+        portraitPosition: portraitPosition ?? this.portraitPosition,
         use24h: use24h ?? this.use24h,
         showSeconds: showSeconds ?? this.showSeconds,
         showDate: showDate ?? this.showDate,
@@ -62,6 +69,7 @@ class Settings {
         'backgroundColor': _encodeHsv(backgroundColor),
         'autoBrightness': autoBrightness,
         'manualLevel': manualLevel,
+        'portraitPosition': portraitPosition,
         'use24h': use24h,
         'showSeconds': showSeconds,
         'showDate': showDate,
@@ -86,6 +94,7 @@ class Settings {
       backgroundColor: _decodeHsv(m['backgroundColor']) ?? d.backgroundColor,
       autoBrightness: read('autoBrightness', d.autoBrightness),
       manualLevel: read<num>('manualLevel', d.manualLevel).toDouble().clamp(0, 1),
+      portraitPosition: read<num>('portraitPosition', d.portraitPosition).toDouble().clamp(0, 1),
       use24h: read<bool?>('use24h', null),
       showSeconds: read('showSeconds', d.showSeconds),
       showDate: read('showDate', d.showDate),

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -60,6 +62,12 @@ class _ClockAppState extends State<ClockApp> {
               ? alarmLabel(next, c.now, use24h: use24h)
               : null;
           final portrait = MediaQuery.orientationOf(context) == Orientation.portrait;
+          // Just enough margin that the burn-in drift stays on screen. In
+          // portrait the top and bottom match, so a camera cutout does not
+          // push the centered face below the middle of the screen.
+          const margin = burnInRadius + 1;
+          final inset = MediaQuery.paddingOf(context);
+          final vertical = portrait ? math.max(margin, math.max(inset.top, inset.bottom)) : margin;
 
           return Stack(fit: StackFit.expand, children: [
             GestureDetector(
@@ -68,12 +76,12 @@ class _ClockAppState extends State<ClockApp> {
               child: ColoredBox(
                 color: s.backgroundColor.toColor(),
                 child: SafeArea(
-                  // Just enough margin that the burn-in drift stays on screen.
-                  minimum: const EdgeInsets.all(burnInRadius + 1),
-                  // In portrait the face sits in the top third, above a dock
-                  // and clear of the settings panel.
+                  minimum: EdgeInsets.symmetric(horizontal: margin, vertical: vertical),
+                  // In portrait the face sits where the user puts it, by
+                  // default in the top third, above a dock and clear of the
+                  // settings panel.
                   child: Align(
-                    alignment: portrait ? const Alignment(0, -2 / 3) : Alignment.center,
+                    alignment: portrait ? Alignment(0, s.portraitPosition * 2 - 1) : Alignment.center,
                     child: Transform.translate(
                       offset: burnInOffset(c.now),
                       // Its own layer, so dimming and the panel sliding do not
