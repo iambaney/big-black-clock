@@ -9,7 +9,7 @@ abstract final class Units {
   static const colonWidth = 0.28;
 
   /// Seconds digits relative to the main digits.
-  static const smallScale = 0.42;
+  static const smallScale = 0.3;
   static const sideGap = 0.1;
 
   /// A 1 lights only the right edge of its slot, leaving this much blank on
@@ -21,9 +21,12 @@ abstract final class Units {
   /// AM/PM in Roboto Bold at this size is just under [periodWidth] wide.
   static const periodFont = 0.18;
 
-  static const secondaryGap = 0.08;
-  static const secondaryFont = 0.16;
-  static const secondaryLine = 0.2;
+  static const secondaryGap = 0.04;
+  static const secondaryFont = 0.15;
+
+  /// The line ends where the bell and battery do, not at the bottom of the
+  /// text's box, so the margin below it matches the one above the digits.
+  static const secondaryLine = secondaryFont * 0.95;
 
   static const pairWidth = 2 * digitWidth + digitGap;
   static const smallPairWidth = pairWidth * smallScale;

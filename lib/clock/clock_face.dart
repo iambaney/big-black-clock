@@ -17,6 +17,7 @@ class ClockFace extends StatelessWidget {
     required this.color,
     required this.showSeconds,
     required this.showDate,
+    required this.lineAtBottom,
     this.alarm,
     this.battery,
   });
@@ -26,6 +27,11 @@ class ClockFace extends StatelessWidget {
   final Color color;
   final bool showSeconds;
   final bool showDate;
+
+  /// Puts the date, alarm and battery line at the bottom, the same size and
+  /// in the same place whatever the size of the time, instead of right under
+  /// the time.
+  final bool lineAtBottom;
 
   /// The next alarm, already formatted; null hides it.
   final String? alarm;
@@ -37,18 +43,24 @@ class ClockFace extends StatelessWidget {
   Widget build(BuildContext context) {
     final battery = this.battery;
     return LayoutBuilder(builder: (context, constraints) {
-      final layout = fitFace(
-        constraints.biggest,
-        seconds: showSeconds,
-        period: !use24h,
-        date: showDate,
-        alarm: alarm != null,
-        battery: battery != null,
-      );
-      final fontSize = layout.secondaryFontSize;
+      FaceLayout fit({required bool seconds}) => fitFace(
+            constraints.biggest,
+            seconds: seconds,
+            period: !use24h,
+            date: showDate,
+            alarm: alarm != null,
+            battery: battery != null,
+          );
+      final layout = fit(seconds: showSeconds);
+      // Seconds make the time smaller, but not a line at the bottom.
+      final line = lineAtBottom ? fit(seconds: false) : layout;
+      final lineHeight = line.digitHeight * Units.secondaryLine;
+      final fontSize = line.secondaryFontSize;
+      final date = showDate ? dateLabel(now) : null;
       final style = TextStyle(color: color, fontSize: fontSize, height: 1, fontWeight: FontWeight.w500);
+      final hasTail = [date, alarm].nonNulls.any((s) => s.contains(RegExp('[gpy]')));
       final groups = [
-        if (showDate) [Text(dateLabel(now), style: style)],
+        if (date != null) [Text(date, style: style)],
         if (alarm != null)
           [
             CustomPaint(size: Size.square(fontSize), painter: BellPainter(color)),
@@ -59,7 +71,18 @@ class ClockFace extends StatelessWidget {
           [CustomPaint(size: Size(fontSize * 1.85, fontSize * 0.85), painter: BatteryPainter(battery, color))],
       ];
 
+      // Above a line at the bottom, the time sits halfway between the line and
+      // the top, but no closer to the line than usual.
+      var top = 0.0;
+      var gap = line.secondaryGap;
+      if (lineAtBottom && layout.hasSecondary) {
+        final space = constraints.maxHeight - layout.digitHeight - lineHeight;
+        gap = math.max(gap, space / 2);
+        top = math.max(0, space - gap);
+      }
+
       return Column(mainAxisSize: MainAxisSize.min, children: [
+        SizedBox(height: top),
         CustomPaint(
           size: layout.timeSize,
           painter: TimePainter(
@@ -70,18 +93,28 @@ class ClockFace extends StatelessWidget {
           ),
         ),
         if (layout.hasSecondary) ...[
-          SizedBox(height: layout.secondaryGap),
+          SizedBox(height: gap),
           SizedBox(
-            width: constraints.maxWidth,
-            height: layout.digitHeight * Units.secondaryLine,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                for (final (i, group) in groups.indexed) ...[
-                  if (i > 0) SizedBox(width: fontSize * 1.2),
-                  ...group,
-                ],
-              ]),
+            // No wider than the time, clear of the screen's rounded corners.
+            width: line.timeSize.width,
+            height: lineHeight,
+            child: OverflowBox(
+              minHeight: fontSize,
+              maxHeight: fontSize,
+              // The text's box hangs a little below the line. It is lifted
+              // when a letter's tail, as in "Sep", would hang there too.
+              alignment: hasTail ? Alignment.bottomCenter : Alignment.topCenter,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: MediaQuery.withNoTextScaling(
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    for (final (i, group) in groups.indexed) ...[
+                      if (i > 0) SizedBox(width: fontSize * 1.2),
+                      ...group,
+                    ],
+                  ]),
+                ),
+              ),
             ),
           ),
         ],

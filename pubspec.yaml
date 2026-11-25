@@ -1,7 +1,7 @@
 name: bigblackclock
 description: "A huge, quiet, ad-free desk and nightstand clock."
 publish_to: 'none'
-version: 1.1.0+3
+version: 1.1.1+4
 
 environment:
   sdk: ^3.14.0

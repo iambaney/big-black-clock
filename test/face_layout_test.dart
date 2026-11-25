@@ -1,6 +1,7 @@
-import 'dart:ui';
-
+import 'package:bigblackclock/clock/clock_face.dart';
 import 'package:bigblackclock/clock/face_layout.dart';
+import 'package:bigblackclock/clock/seven_segment.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 FaceLayout fit(
@@ -58,5 +59,79 @@ void main() {
 
   test('the battery alone keeps the line under the time', () {
     expect(fit(const Size(800, 300), date: false, alarm: false, battery: true).hasSecondary, isTrue);
+  });
+
+  Future<({Rect face, Rect time, Rect bell})> pumpFace(
+    WidgetTester tester, {
+    required bool lineAtBottom,
+    bool use24h = true,
+    bool seconds = false,
+    String alarm = '6:30',
+    Size size = const Size(764, 352),
+  }) async {
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints.loose(size),
+            child: ClockFace(
+              now: DateTime(2026, 11, 24, 22, 30),
+              use24h: use24h,
+              color: const Color(0xFFFFFFFF),
+              showSeconds: seconds,
+              showDate: false,
+              lineAtBottom: lineAtBottom,
+              alarm: alarm,
+            ),
+          ),
+        ),
+      ),
+    );
+    Rect painted<T>() => tester.getRect(find.byWidgetPredicate((w) => w is CustomPaint && w.painter is T));
+    return (
+      face: tester.getRect(find.byType(Column)),
+      time: painted<TimePainter>(),
+      bell: painted<BellPainter>(),
+    );
+  }
+
+  testWidgets('the line under the time ends exactly at the bottom of the face', (tester) async {
+    for (final lineAtBottom in [false, true]) {
+      for (final alarm in ['6:30', '6:30 +2 days']) {
+        final f = await pumpFace(tester, lineAtBottom: lineAtBottom, alarm: alarm);
+        // The bell is drawn down to 95% of its box. A letter's tail reaches
+        // the bottom of the box, so then the whole box has to fit. The text's
+        // height is a whole number of pixels, hence the tolerance.
+        final drawn = alarm.contains('y') ? 1.0 : 0.95;
+        expect(f.bell.top + f.bell.height * drawn, closeTo(f.face.bottom, 0.5), reason: alarm);
+      }
+    }
+  });
+
+  testWidgets('a line at the bottom stays put when the time changes size', (tester) async {
+    for (final size in const [Size(764, 352), Size(640, 352), Size(800, 600)]) {
+      for (final use24h in [false, true]) {
+        final big = await pumpFace(tester, lineAtBottom: true, use24h: use24h, size: size);
+        final small = await pumpFace(tester, lineAtBottom: true, use24h: use24h, size: size, seconds: true);
+        expect(small.time.height, lessThan(big.time.height));
+        expect(small.face.bottom, closeTo(big.face.bottom, 1e-6));
+        expect(small.bell, rectMoreOrLessEquals(big.bell, epsilon: 1e-6), reason: '$size');
+        // Still inside the face, and clear of the line.
+        expect(small.time.top, greaterThanOrEqualTo(small.face.top));
+        expect(small.time.bottom, lessThan(small.bell.top));
+      }
+    }
+  });
+
+  testWidgets('a line under the time keeps its distance and shrinks with the time', (tester) async {
+    const size = Size(352, 744);
+    for (final seconds in [false, true]) {
+      final f = await pumpFace(tester, lineAtBottom: false, seconds: seconds, size: size);
+      final h = f.time.height;
+      expect(f.face.top, f.time.top);
+      expect(f.bell.top - f.time.bottom, closeTo(h * Units.secondaryGap, 1e-6));
+      expect(f.bell.height, closeTo(h * Units.secondaryFont, 1e-6));
+    }
   });
 }
